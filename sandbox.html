@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">    
+    <title>Catalogue</title>
+  
+    <link rel="stylesheet" href="domcss.css">
+
+    <script>
+      function manipulateDom1() {
+        var el = document.getElementById("one");
+        console.log(el)
+        el.textContent = 'BSC Big Data';
+      }
+    </script>
+  </head>
+
+  <body>
+    <div id="page">
+      <h1 id="header">Course Catalogue</h1>
+      <h2>Course Status</h2>
+      <button type="button" onclick="manipulateDom1()">Click me</button>
+      <ul>
+        <li id="one" class="running"><em>new</em> BSc Computer Networking</li>
+        <li id="two" class="running">BSc Computing</li>
+        <li id="three" class="running">BSc Informatics</li>
+        <li id="four">BSc Mechatronics</li>
+      </ul>
+    </div>
+  </body>
+</html>
