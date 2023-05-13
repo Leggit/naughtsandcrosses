@@ -37,61 +37,7 @@
     </style>
 
     <script>
-        let naughts = true;
-
-        grid = new Array(9).map(_ => '');
-
-        squareClick = (id, event) => {
-            event.target.innerText = naughts ? '0' : 'X';
-            grid[parseInt(id)] = naughts ? '0' : 'X';
-            const win = checkWin();
-
-            if(win) {
-                announceWin();
-            } else {
-                naughts = !naughts;
-                togglePlayer();
-            }
-        }
-
-        announceWin = () => {
-            const player = document.getElementById('player');
-            player.innerText = 'Winner: ' + (naughts ? 'Naughts' : 'Crosses');
-        }
-
-        togglePlayer = () => {
-            const player = document.getElementById('player');
-            player.innerText = 'Turn: ' + (naughts ? 'Naughts' : 'Crosses');
-        }
-
-        checkWin = () => {
-            debugger;
-            const winningNumbers = [
-                [0, 1, 2],
-                [0, 4, 8],
-                [1, 4, 7],
-                [2, 5, 8],
-                [3, 4, 5],
-                [6, 7, 8],
-                [6, 4, 2]
-            ];
-
-            const playersSquares = this.grid.reduce((accumulation, squareValue, index) => {
-                const playerCharacter = naughts ? '0' : 'X';
-                if(squareValue === playerCharacter) {
-                    accumulation.push(index);
-                }
-                return accumulation;
-            }, [])
-
-            for(const winningCombo of winningNumbers) {
-                if(winningCombo.every(index => playersSquares.includes(index))) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
+        
     </script>
 </head>
 <body>
@@ -115,5 +61,8 @@
             </div>
         </div>
     </div>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"   integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="   crossorigin="anonymous"></script>
+    <script src="xo.js"></script>
 </body>
 </html>
