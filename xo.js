@@ -82,36 +82,35 @@ $(() => {
         const checkLeftToRightDiagonal = () => {
             for (let i = 0; i <= board.length - winLength; i++) {
                 for (let j = 0; j <= board.length - winLength; j++) {
-                  for(let count = 0; count < winLength; count++) {
-                    if (board[i + count][j + count] !== player) {
-                        return false;
+                    if(new Array(winLength).every((_, index) => board[i + index][j + index] === player)) {
+                        return true;
                     }
-                  }
                 }
             }
-            return true;
+            return false;
         }
 
         const checkRightToLeftDiagonal = () => {
             for (let i = 0; i <= board.length - winLength; i++) {
                 for (let j = board.length - 1; j >= 0; j--) {
                   for(let count = 0; count < winLength; count++) {
-                    if (board[i + count][j - count] !== player) {
-                        return false;
+                    if(new Array(winLength).every((_, index) => board[i + index][j - index] === player)) {
+                        return true;
                     }
                   }
                 }
             }
-            return true;
+            return false;
         }
 
         return checkRows() || checkCols() || checkLeftToRightDiagonal() || checkRightToLeftDiagonal();
     }
 
     const board = [
-        ['X', 'X', 'X'],
-        ['', 'X', ''],
-        ['X', '', '']
+        ['', 'X', '', ''],
+        ['', '', 'X', ''],
+        ['', '', '', 'X'],
+        ['', '', '', '']
     ];
 
     console.log(altCheckWin(board, 'X', 3));
