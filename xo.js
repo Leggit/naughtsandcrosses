@@ -1,62 +1,53 @@
 $(() => {
-    let naughts = true;
+    let currentPlayer = '0';
 
-    grid = new Array(9).map(_ => '');
+    const boardSize = 4;
+    const winLength = 3;
+    const board = Array(boardSize).fill([]).map(() => [...Array(boardSize).fill('')]);
 
-    squareClick = (id, event) => {
-        event.target.innerText = naughts ? '0' : 'X';
-        grid[parseInt(id)] = naughts ? '0' : 'X';
-        const win = checkWin();
+
+    const boardWidth = 400;
+
+    (createBoard = () => {
+        const createSquare = (x, y) => `<div class="square" onclick="squareClick(${x}, ${y}, event)"></div>`;
+        const createRow = (y, row) => '<div class="row">' + row.map((_, index) => createSquare(index, y)).join(' ') + '</div>';
+        const html = board.map((row, index) => createRow(index, row)).join('');
+        $('#board').html(html);
+        $('.row').css({ 
+            height: boardWidth / boardSize  + 'px',
+            display: 'flex'
+        });
+        $('.square').css({
+            flex: 1,
+            border: '1px solid black',
+            'font-size': boardWidth / boardSize * 0.75  + 'px',
+            'line-height': boardWidth / boardSize + 'px',
+            'text-align': 'center'
+        });
+    })();
+
+    squareClick = (x, y, event) => {
+        event.target.innerText = currentPlayer;
+        board[x][y] = currentPlayer;
+        const win = checkWin(board, currentPlayer, winLength);
 
         if (win) {
             announceWin();
         } else {
-            naughts = !naughts;
+            currentPlayer = currentPlayer === 'X' ? '0' : 'X';
             togglePlayer();
         }
     }
 
     announceWin = () => {
-        const player = document.getElementById('player');
-        player.innerText = 'Winner: ' + (naughts ? 'Naughts' : 'Crosses');
+        $('#player').text('Winner: ' + (currentPlayer === '0' ? 'Naughts' : 'Crosses'));
     }
 
     togglePlayer = () => {
-        const player = document.getElementById('player');
-        player.innerText = 'Turn: ' + (naughts ? 'Naughts' : 'Crosses');
+        $('#player').text('Turn: ' + (currentPlayer === '0' ? 'Naughts' : 'Crosses'));
     }
 
-
-
-    checkWin = () => {
-        const winningNumbers = [
-            [0, 1, 2],
-            [0, 4, 8],
-            [1, 4, 7],
-            [2, 5, 8],
-            [3, 4, 5],
-            [6, 7, 8],
-            [6, 4, 2]
-        ];
-
-        const playersSquares = this.grid.reduce((accumulation, squareValue, index) => {
-            const playerCharacter = naughts ? '0' : 'X';
-            if (squareValue === playerCharacter) {
-                accumulation.push(index);
-            }
-            return accumulation;
-        }, [])
-
-        for (const winningCombo of winningNumbers) {
-            if (winningCombo.every(index => playersSquares.includes(index))) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    altCheckWin = (board = [[]], player, winLength = 3) => {
+    checkWin = (board = [[]], player = 'X', winLength = 3) => {
         const checkRows = () => {
             for(let i = 0; i < board.length; i++) {
                 for(let j = 0; j <= board.length - winLength; j++) {
@@ -82,7 +73,7 @@ $(() => {
         const checkLeftToRightDiagonal = () => {
             for (let i = 0; i <= board.length - winLength; i++) {
                 for (let j = 0; j <= board.length - winLength; j++) {
-                    if(new Array(winLength).every((_, index) => board[i + index][j + index] === player)) {
+                    if(Array(winLength).fill().every((_, index) => board[i + index][j + index] === player)) {
                         return true;
                     }
                 }
@@ -94,7 +85,7 @@ $(() => {
             for (let i = 0; i <= board.length - winLength; i++) {
                 for (let j = board.length - 1; j >= 0; j--) {
                   for(let count = 0; count < winLength; count++) {
-                    if(new Array(winLength).every((_, index) => board[i + index][j - index] === player)) {
+                    if(Array(winLength).fill().every((_, index) => board[i + index][j - index] === player)) {
                         return true;
                     }
                   }
@@ -105,13 +96,4 @@ $(() => {
 
         return checkRows() || checkCols() || checkLeftToRightDiagonal() || checkRightToLeftDiagonal();
     }
-
-    const board = [
-        ['', 'X', '', ''],
-        ['', '', 'X', ''],
-        ['', '', '', 'X'],
-        ['', '', '', '']
-    ];
-
-    console.log(altCheckWin(board, 'X', 3));
 });

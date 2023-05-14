@@ -1,0 +1,9 @@
+ testing new win algo:
+    const board = [
+        ['', 'X', '', ''],
+        ['', '', 'X', ''],
+        ['', '', '', 'X'],
+        ['', '', '', '']
+    ];
+
+    console.log(altCheckWin(board, 'X', 3));

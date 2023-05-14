@@ -13,7 +13,7 @@
         .container {
             width: 100%;
         }
-        .grid {
+        #board {
             width: var(--gridWidth);
             margin: auto;
             user-select: none;
@@ -22,17 +22,6 @@
             text-align: center;
             font-size: x-large;
             margin: 10px;
-        }
-        .grid .row {
-            height: calc(var(--gridWidth) / 3);
-            display: flex;
-        }
-        .row div {
-            flex: 1;
-            border: 1px solid black;
-            font-size: calc((var(--gridWidth) / 3) * 0.75);
-            line-height: calc(var(--gridWidth) / 3);
-            text-align: center;
         }
     </style>
 
@@ -43,22 +32,7 @@
 <body>
     <div class="container">
         <div id="player">Turn: Naughts</div>
-        <div class="grid">
-            <div class="row">
-                <div id="0" onclick="squareClick(0, event)"></div>
-                <div id="1" onclick="squareClick(1, event)"></div>
-                <div id="2" onclick="squareClick(2, event)"></div>
-            </div>
-            <div class="row">
-                <div id="3" onclick="squareClick(3, event)"></div>
-                <div id="4" onclick="squareClick(4, event)"></div>
-                <div id="5" onclick="squareClick(5, event)"></div>
-            </div>
-            <div class="row">
-                <div id="6" onclick="squareClick(6, event)"></div>
-                <div id="7" onclick="squareClick(7, event)"></div>
-                <div id="8" onclick="squareClick(8, event)"></div>
-            </div>
+        <div id="board">
         </div>
     </div>
 
