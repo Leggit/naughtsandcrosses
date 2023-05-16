@@ -3,13 +3,12 @@ $(() => {
 
     const boardSize = 4;
     const winLength = 3;
-    const board = Array(boardSize).fill([]).map(() => [...Array(boardSize).fill('')]);
-
+    let board = Array(boardSize).fill([]).map(() => [...Array(boardSize).fill('')]);
 
     const boardWidth = 400;
 
     (createBoard = () => {
-        const createSquare = (x, y) => `<div class="square" onclick="squareClick(${x}, ${y}, event)"></div>`;
+        const createSquare = (x, y) => `<div id="square${x}${y}" class="square" onclick="squareClick(${x}, ${y}, event)"></div>`;
         const createRow = (y, row) => '<div class="row">' + row.map((_, index) => createSquare(index, y)).join(' ') + '</div>';
         const html = board.map((row, index) => createRow(index, row)).join('');
         $('#board').html(html);
@@ -26,15 +25,30 @@ $(() => {
         });
     })();
 
+    reset = () => {
+        board = Array(boardSize).fill([]).map(() => [...Array(boardSize).fill('')]);
+        $('.square').text('');
+        currentPlayer = '0';
+        togglePlayer();
+    }
+
     squareClick = (x, y, event) => {
-        event.target.innerText = currentPlayer;
+        if(board[x][y] === 'X' || board[x][y] === '0') return;
+
+        $(`#square${x}${y}`).text(currentPlayer)
         board[x][y] = currentPlayer;
+        debugger
         const win = checkWin(board, currentPlayer, winLength);
 
         if (win) {
             announceWin();
+            // TODO show the win on the board visually?
         } else {
             currentPlayer = currentPlayer === 'X' ? '0' : 'X';
+            if(currentPlayer === 'X') {
+                const move = minimax(board, currentPlayer);
+                squareClick(move[0], move[1]);
+            }
             togglePlayer();
         }
     }
@@ -95,5 +109,60 @@ $(() => {
         }
 
         return checkRows() || checkCols() || checkLeftToRightDiagonal() || checkRightToLeftDiagonal();
+    }
+
+    minimax = (board, player, depth = 0) => {
+        // TODO implement depth check to win quicker?
+
+        const availableMoves = getAvailableMoves(board);
+        if(availableMoves.length === 0 || depth === 6) {
+            return { score: 0 };
+        }
+        if(checkWin(board, '0')) {
+            return { score: 100 - depth };
+        }
+        if(checkWin(board, 'X')) {
+            return { score: -100 + depth };
+        }
+
+        availableMoves.forEach(availableMove => {
+            board[availableMove[0]][availableMove[1]] = player;
+            if(player === 'X') {
+                availableMove.score = minimax(board, '0', depth + 1).score;
+            } else {
+                availableMove.score = minimax(board, 'X', depth + 1).score;
+            }
+            board[availableMove[0]][availableMove[1]] = '';
+        });
+
+        let optimalMove;
+        if(player === '0') {
+            optimalMove = { score: -Infinity };
+            for(const availableMove of availableMoves) {
+                if(availableMove.score > optimalMove.score) {
+                    optimalMove = availableMove;
+                }
+            }
+        } else {
+            optimalMove = { score: Infinity };
+            for(const availableMove of availableMoves) {
+                if(availableMove.score < optimalMove.score) {
+                    optimalMove = availableMove;
+                }
+            }
+        }
+        return optimalMove;
+    }
+
+    getAvailableMoves = (board) => {
+        const moves = [];
+        for(let i = 0; i < board.length; i++) {
+            for(let j = 0; j < board.length; j++) {
+                if(!board[i][j]) {
+                    moves.push([i, j]);
+                }
+            }
+        }
+        return moves;
     }
 });
