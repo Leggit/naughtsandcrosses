@@ -35,7 +35,7 @@
         createBoard()
     }
 
-    $(document).ready(function () { setup() });
+    $(document).ready(setup);
 
     function createBoard() {
         const createSquare = (x, y) => `<div id="square${x}${y}" class="square" onclick="squareClick(${x}, ${y}, event)"></div>`;
