@@ -1,13 +1,43 @@
-$(() => {
+
     let currentPlayer = '0';
 
-    const boardSize = 4;
-    const winLength = 4;
+    let boardSize = 3;
+    const winLength = 3;
     let board = Array(boardSize).fill([]).map(() => [...Array(boardSize).fill('')]);
 
     const boardWidth = 400;
 
-    (createBoard = () => {
+    function setup() {
+        board = Array(boardSize).fill([]).map(() => [...Array(boardSize).fill('')]);
+        createBoard()
+        $('#boardSize').on('input', updateSliders);
+    }
+
+    function updateSliders() {
+        boardSize = parseInt($('#boardSize').val())
+        $('#boardSizes option').removeClass('text-green-700 font-bold');
+        $(`#boardSizes option[value="${boardSize}"]`).addClass('text-green-700 font-bold');
+        if(boardSize == 3) {
+            $('#winLength').hide();
+            $('#winLengths').hide();
+            $('#winLengthLabel').text('Win Length: 3');
+        } else {
+            $('#winLength').show();
+            $('#winLength').attr('max', boardSize);
+            $('#winLengths option').hide();
+            $('#winLengths option').filter(function () {
+                return parseInt($(this).attr('value')) <= boardSize;
+            }).show();
+            $('#winLengths').show();
+            $('#winLengthLabel').text('Win Length:');
+        }
+        board = Array(boardSize).fill([]).map(() => [...Array(boardSize).fill('')]);
+        createBoard()
+    }
+
+    $(document).ready(function () { setup() });
+
+    function createBoard() {
         const createSquare = (x, y) => `<div id="square${x}${y}" class="square" onclick="squareClick(${x}, ${y}, event)"></div>`;
         const createRow = (y, row) => '<div class="row">' + row.map((_, index) => createSquare(y, index)).join(' ') + '</div>';
         const html = board.map((row, index) => createRow(index, row)).join('');
@@ -23,7 +53,7 @@ $(() => {
             'line-height': boardWidth / boardSize + 'px',
             'text-align': 'center'
         });
-    })();
+    }
 
     reset = () => {
         board = Array(boardSize).fill([]).map(() => [...Array(boardSize).fill('')]);
@@ -45,10 +75,10 @@ $(() => {
         } else {
             currentPlayer = currentPlayer === 'X' ? '0' : 'X';
             if (currentPlayer === 'X') {
-                //const move = findBestMove(board)
-                calls = 0 
-                const move = minimax(board, currentPlayer, 0);
-                console.log(calls)
+                const move = findBestMove(board)
+                //calls = 0 
+                //const move = minimax(board, currentPlayer, 0);
+                //console.log(calls)
                 squareClick(move[0], move[1]);
             }
             togglePlayer();
@@ -118,14 +148,15 @@ $(() => {
         calls++;
 
         const availableMoves = getAvailableMoves(board);
-        if(availableMoves.length === 0 || depth === 6) {
-            return { score: 0 };
-        }
+        
         if(checkWin(board, '0')) {
             return { score: 100 - depth };
         }
         if(checkWin(board, 'X')) {
             return { score: -100 + depth };
+        }
+        if(availableMoves.length === 0 || depth === 6) {
+            return { score: 0 };
         }
 
         availableMoves.forEach(availableMove => {
@@ -172,12 +203,17 @@ $(() => {
     
     var calls = 0;
 
-    altminimax = (board, depth, player, alpha, beta, startTime) => {
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min
+    }
+
+    altminimax = (board, depth, player, alpha, beta, startTime, bestMove) => {
         calls++;
         const maximiser = 'X';
         const minimiser = '0';
         const maxDepth = 6; // change this for difficulty
         const maxTimeSeconds = 10;
+        depth++;
 
         if (checkWin(board, maximiser)) {
             return 100 + depth;
@@ -186,14 +222,21 @@ $(() => {
             return -100 + depth;
         }
         const availableMoves = getAvailableMoves(board);
-        if (availableMoves.length === 0 || depth > maxDepth) {
+        if (availableMoves.length === 0) {
+            return 0;
+        }
+        if(depth > maxDepth) {
+            return getRandomInt(-25, 25);
+        }
+        if(depth > 2 && (startTime + maxTimeSeconds * 1000) > performance.now()) {
+            console.log("TIME OUT")
             return 0;
         }
 
         if(player === maximiser) {
             for(const move of availableMoves) {
                 board[move[0]][move[1]] = player;
-                const value = altminimax(board, depth + 1, minimiser, alpha, beta);
+                const value = altminimax(board, depth, minimiser, alpha, beta);
                 board[move[0]][move[1]] = '';
 
                 if(value > alpha) {
@@ -206,7 +249,7 @@ $(() => {
         } else {
             for(const move of availableMoves) {
                 board[move[0]][move[1]] = player;
-                const value = altminimax(board, depth + 1, maximiser, alpha, beta);
+                const value = altminimax(board, depth, maximiser, alpha, beta);
                 board[move[0]][move[1]] = '';
 
                 if(value < beta) {
@@ -243,4 +286,3 @@ $(() => {
         console.log("Calls: ", calls);
         return bestMove;
     }
-});
