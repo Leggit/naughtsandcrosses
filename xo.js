@@ -1,20 +1,23 @@
 
     let currentPlayer = '0';
-
     let boardSize = 3;
-    const winLength = 3;
+    let winLength = 3;
     let board = Array(boardSize).fill([]).map(() => [...Array(boardSize).fill('')]);
-
-    const boardWidth = 400;
+    let vsAi = false;
+    const boardWidth = 500;
 
     function setup() {
         board = Array(boardSize).fill([]).map(() => [...Array(boardSize).fill('')]);
         createBoard()
+        $(':root').css({ '--boardWidth': boardWidth });
         $('#boardSize').on('input', updateSliders);
+        $('#winLength').on('input', updateSliders);
     }
 
     function updateSliders() {
-        boardSize = parseInt($('#boardSize').val())
+        boardSize = parseInt($('#boardSize').val());
+        winLength = parseInt($('#winLength').val());
+
         $('#boardSizes option').removeClass('text-green-700 font-bold');
         $(`#boardSizes option[value="${boardSize}"]`).addClass('text-green-700 font-bold');
         if(boardSize == 3) {
@@ -55,50 +58,58 @@
         });
     }
 
-    reset = () => {
+    function reset() {
         board = Array(boardSize).fill([]).map(() => [...Array(boardSize).fill('')]);
-        $('.square').text('');
+        $('.square').text('').removeClass('bg-red-500');
         currentPlayer = '0';
-        togglePlayer();
+        updatePlayer(currentPlayer);
+        vsAi = $('#humanRadio:checked').val() === undefined;
     }
 
-    squareClick = (x, y, event) => {
+    function squareClick(x, y) {
         if (board[x][y] === 'X' || board[x][y] === '0') return;
 
         $(`#square${x}${y}`).text(currentPlayer)
         board[x][y] = currentPlayer;
-        const win = checkWin(board, currentPlayer, winLength);
 
+        const win = checkWin(board, currentPlayer, winLength)
         if (win) {
-            announceWin();
-            // TODO show the win on the board visually?
+            announceWin(win);
         } else {
             currentPlayer = currentPlayer === 'X' ? '0' : 'X';
-            if (currentPlayer === 'X') {
+            updatePlayer(currentPlayer);
+            if (currentPlayer === 'X' && vsAi) {
                 const move = findBestMove(board)
-                //calls = 0 
-                //const move = minimax(board, currentPlayer, 0);
-                //console.log(calls)
                 squareClick(move[0], move[1]);
             }
-            togglePlayer();
         }
     }
 
-    announceWin = () => {
-        $('#player').text('Winner: ' + (currentPlayer === '0' ? 'Naughts' : 'Crosses'));
+    function announceWin(winningSquares) {
+        $('#player').text('Winner: ' + (currentPlayer === '0' ? 'Naughts' : 'Crosses')).addClass('text-green-500 font-bold');
+        winningSquares.forEach(([x, y]) => {
+            $(`#square${x}${y}`).addClass('bg-red-500')
+        })
     }
 
-    togglePlayer = () => {
-        $('#player').text('Turn: ' + (currentPlayer === '0' ? 'Naughts' : 'Crosses'));
+    function updatePlayer(player) {
+        $('#player').text('Turn: ' + player);
     }
 
-    checkWin = (board = [[]], player = 'X', winLength = 3) => {
+    function checkWin(board, player, winLength) {
         const checkRows = () => {
             for (let i = 0; i < board.length; i++) {
                 for (let j = 0; j <= board.length - winLength; j++) {
-                    if (board[i].slice(j, j + winLength).every(val => val === player)) {
-                        return true;
+                    const currentLine = [];
+                    for(let k = 0; k < winLength; k++) {
+                        if(board[i][j + k] === player) {
+                            currentLine.push([i, j + k]);
+                        } else {
+                            break;
+                        }
+                    }
+                    if(currentLine.length === winLength) {
+                        return currentLine;
                     }
                 }
             }
@@ -108,8 +119,16 @@
         const checkCols = () => {
             for (let i = 0; i <= board.length - winLength; i++) {
                 for (let j = 0; j < board.length; j++) {
-                    if (board.slice(i, i + winLength).every(col => col[j] === player)) {
-                        return true;
+                    const currentLine = [];
+                    for(let k = 0; k < winLength; k++) {
+                        if(board[i + k][j] === player) {
+                            currentLine.push([i + k, j]);
+                        } else {
+                            break;
+                        }
+                    }
+                    if(currentLine.length === winLength) {
+                        return currentLine;
                     }
                 }
             }
@@ -119,8 +138,16 @@
         const checkLeftToRightDiagonal = () => {
             for (let i = 0; i <= board.length - winLength; i++) {
                 for (let j = 0; j <= board.length - winLength; j++) {
-                    if (Array(winLength).fill().every((_, index) => board[i + index][j + index] === player)) {
-                        return true;
+                    const currentLine = [];
+                    for(let k = 0; k < winLength; k++) {
+                        if(board[i + k][j + k] === player) {
+                            currentLine.push([i + k, j + k]);
+                        } else {
+                            break;
+                        }
+                    }
+                    if(currentLine.length === winLength) {
+                        return currentLine;
                     }
                 }
             }
@@ -130,10 +157,16 @@
         const checkRightToLeftDiagonal = () => {
             for (let i = 0; i <= board.length - winLength; i++) {
                 for (let j = board.length - 1; j >= 0; j--) {
-                    for (let count = 0; count < winLength; count++) {
-                        if (Array(winLength).fill().every((_, index) => board[i + index][j - index] === player)) {
-                            return true;
+                    const currentLine = [];
+                    for(let k = 0; k < winLength; k++) {
+                        if(board[i + k][j - k] === player) {
+                            currentLine.push([i + k, j - k]);
+                        } else {
+                            break;
                         }
+                    }
+                    if(currentLine.length === winLength) {
+                        return currentLine;
                     }
                 }
             }
@@ -215,10 +248,10 @@
         const maxTimeSeconds = 10;
         depth++;
 
-        if (checkWin(board, maximiser)) {
+        if (checkWin(board, maximiser, winLength)) {
             return 100 + depth;
         }
-        if (checkWin(board, minimiser)) {
+        if (checkWin(board, minimiser, winLength)) {
             return -100 + depth;
         }
         const availableMoves = getAvailableMoves(board);
@@ -272,7 +305,6 @@
                 if (board[i][j] === "") {
                     board[i][j] = "X"; // Simulate a move for the maximizing player
                     let score = altminimax(board, 0, '0', -Infinity, Infinity);
-                    debugger
                     board[i][j] = ""; // Undo the move
 
                     if (score > bestScore) {
