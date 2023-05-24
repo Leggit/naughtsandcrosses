@@ -10,6 +10,9 @@
   <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet" />
 
   <style>
+    :root {
+      --boardWidth: 450px;
+    }
     #board {
       width: var(--boardWidth);
       height: var(--boardWidth);
@@ -27,6 +30,12 @@
       text-align: center;
       cursor: pointer
     }
+
+    @media only screen and (max-width: 768px) {
+      :root {
+        --boardWidth: 300px;
+      }
+    }
   </style>
 </head>
 
@@ -36,12 +45,12 @@
 
     <h1 class="text-3xl w-full text-gray-8-0 font-bold text-center bg-white shadow-lg mb-3 p-2 rounded">Naughts and Crosses</h1>
 
-    <div class="flex flex-col md:flex-row">
-      <div class="max-w-xl bg-white p-8 shadow-lg rounded md:mr-2 md:mb-0 mb-4">
+    <div class="grid grid-cols-3 gap-3">
+      <div class="md:col-span-2 col-span-full bg-white p-8 shadow-lg rounded">
         <div id="board"></div>
       </div>
 
-      <div id="gameOptions" class="w-full max-w-md md:ml-2 flex flex-col">
+      <div id="gameOptions" class="md:col-span-1 col-span-full flex flex-col">
         <div id="player" class="flex-0 md:text-3xl shadow-lg rounded px-8 pt-6 pb-8 bg-white mb-3 text-center font-bold">
           Player turn: no one
         </div>

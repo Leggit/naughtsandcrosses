@@ -5,11 +5,15 @@
     let board = Array(boardSize).fill([]).map(() => [...Array(boardSize).fill('')]);
     let vsAi = true;
     let gameActive = true;
-    const BOARD_WIDTH = 500;
+    let BOARD_WIDTH = 500;
+
+    function getBoardWidth() {
+        return getComputedStyle($(':root')[0]).getPropertyValue('--boardWidth').slice(0, -2);
+    }
 
     $(document).ready(() => {
         createBoard()
-        $(':root').css({ '--boardWidth': BOARD_WIDTH });
+        BOARD_WIDTH = getBoardWidth();
         $('#boardSize').on('input', updateSliders);
         $('#winLength').on('input', updateSliders);
         reset();
