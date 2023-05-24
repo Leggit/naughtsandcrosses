@@ -32,18 +32,18 @@
 
 <body class="bg-gray-300 m-3">
 
-  <div class="max-w-4xl m-auto">
+  <div class="md:max-w-4xl m-auto">
 
-    <h1 class="text-3xl text-gray-8-0 font-bold text-center bg-white shadow-lg mb-3 p-2 rounded">Naughts and Crosses</h1>
+    <h1 class="text-3xl w-full text-gray-8-0 font-bold text-center bg-white shadow-lg mb-3 p-2 rounded">Naughts and Crosses</h1>
 
-    <div class="flex">
-      <div class="max-w-xl bg-white p-8 shadow-lg rounded mr-2">
+    <div class="flex flex-col md:flex-row">
+      <div class="max-w-xl bg-white p-8 shadow-lg rounded md:mr-2 md:mb-0 mb-4">
         <div id="board"></div>
       </div>
 
-      <div id="gameOptions" class="w-full max-w-md ml-2 flex flex-col">
-        <div id="player" class="flex-0 shadow-lg rounded px-8 pt-6 pb-8 bg-white mb-3 text-center">
-          Player turn : no one
+      <div id="gameOptions" class="w-full max-w-md md:ml-2 flex flex-col">
+        <div id="player" class="flex-0 md:text-3xl shadow-lg rounded px-8 pt-6 pb-8 bg-white mb-3 text-center font-bold">
+          Player turn: no one
         </div>
         <div class="flex-1 flex-grow">
           <form class="h-full p-8 shadow-lg rounded px-8 pt-6 pb-8 bg-white">
@@ -82,7 +82,7 @@
                 <option value="9" label="9" onclick="$('#winLength').val(9)"></option>
               </datalist>
             </div>
-            <div class="mb-3">
+            <div class="mb-3" id="playAgainstSelect">
               <label class="block text-gray-700 text-sm font-bold mb-2">Play against: </label>
               <div class="flex items-center">
                 <input id="humanRadio" type="radio" value="" name="bordered-radio"
@@ -90,9 +90,9 @@
                 <label for="humanRadio"
                   class="w-full ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Human</label>
 
-                <input checked id="computerRadio" type="radio" value="" name="bordered-radio"
+                <input checked id="aiRadio" type="radio" value="" name="bordered-radio"
                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                <label for="computerRadio"
+                <label for="aiRadio"
                   class="w-full ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">AI</label>
               </div>
             </div>
