@@ -5,29 +5,44 @@
     let board = Array(boardSize).fill([]).map(() => [...Array(boardSize).fill('')]);
     let vsAi = true;
     let gameActive = true;
-    let BOARD_WIDTH = 500;
 
-    function getBoardWidth() {
-        return getComputedStyle($(':root')[0]).getPropertyValue('--boardWidth').slice(0, -2);
+    const squareClasses = {
+        lose: 'bg-red-500',
+        win: 'bg-green-300',
+        draw: 'bg-gray-500'
+    }
+    const playerClass = {
+        lose: 'text-red-500',
+        win: 'text-green-500',
     }
 
-    $(document).ready(() => {
-        createBoard()
-        BOARD_WIDTH = getBoardWidth();
+
+    // TODO
+    // Timer
+    // Difficulty levels
+    // make ai work for larger boards and win as quick as possible
+
+    $(() => {
         $('#boardSize').on('input', updateSliders);
         $('#winLength').on('input', updateSliders);
         reset();
     });
 
+    function getBoardWidth() {
+        return getComputedStyle($(':root')[0]).getPropertyValue('--boardWidth').slice(0, -2);
+    }
+
     function reset() {    
         board = Array(boardSize).fill([]).map(() => [...Array(boardSize).fill('')]);
-        $('.square').text('').removeClass('bg-red-500 bg-green-300 bg-gray-500');
-        $('#player').removeClass('text-green-500 text-red-500');
         currentPlayer = '0';
-        updatePlayer(currentPlayer);
         vsAi = $('#humanRadio:checked').val() === undefined;
         gameActive = true;
-        createBoard();
+
+        $('.square').text('').removeClass(Object.values(squareClasses).join(' '));
+        $('#player').removeClass(Object.values(playerClass).join(' '));
+        
+        updatePlayer(currentPlayer);
+        createBoard(board, getBoardWidth(), boardSize);
     }
 
     function updateSliders() {
@@ -35,7 +50,9 @@
         winLength = parseInt($('#winLength').val());
 
         $('#boardSizes option').removeClass('text-green-700 font-bold');
-        $(`#boardSizes option[value="${boardSize}"]`).addClass('text-green-700 font-bold');
+        $(`#boardSizes option[value='${boardSize}']`).addClass('text-green-700 font-bold');
+        $('#winLengths option').removeClass('text-green-700 font-bold');
+        $(`#winLengths option[value='${winLength}']`).addClass('text-green-700 font-bold');
         
         if(boardSize == 3) {
             $('#winLength').hide();
@@ -64,22 +81,11 @@
         reset();
     }
 
-    function createBoard() {
+    function createBoard(board, boardWidthPx, boardSize) {
         const createSquare = (x, y) => `<div id="square${x}${y}" class="square" onclick="squareClick(${x}, ${y})"></div>`;
         const createRow = (y, row) => '<div class="row">' + row.map((_, index) => createSquare(y, index)).join(' ') + '</div>';
-        const html = board.map((row, index) => createRow(index, row)).join('');
-        $('#board').html(html);
-        $('.row').css({
-            height: BOARD_WIDTH / boardSize + 'px',
-            display: 'flex'
-        });
-        $('.square').css({
-            flex: 1,
-            border: '1px solid black',
-            'font-size': BOARD_WIDTH / boardSize * 0.75 + 'px',
-            'line-height': BOARD_WIDTH / boardSize + 'px',
-            'text-align': 'center'
-        });
+        $('#board').html(board.map((row, index) => createRow(index, row)).join(''));
+        $(':root').css({'--squareLength':  boardWidthPx / boardSize});
     }
 
     function squareClick(x, y, isAiTurn) {
@@ -95,36 +101,34 @@
         } else if(!getAvailableMoves(board).length) {
             announceDraw();
         } else {
-            nextIteration();
+            doNextIteration();
         }
     }
 
-    function nextIteration() {
+    function doNextIteration() {
         currentPlayer = currentPlayer === 'X' ? '0' : 'X';
         const isAiTurn = currentPlayer === 'X' && vsAi;
         updatePlayer(currentPlayer, isAiTurn);
         if (isAiTurn) {
-            aiMove();
+            doAiMove();
         }
     }
 
-    function aiMove() {
-        $('#board').css({'pointer-events': 'none'});
+    function doAiMove() {
         setTimeout(() => {
-            const move = findBestMove(board)
+            const move = findBestMove(board, 'X', '0')
             squareClick(move[0], move[1], true);
-            $('#board').css({'pointer-events': 'auto'});
         });
     }
 
     function announceWin(winningSquares, isAiWin) {
         gameActive = false;
-        const squareClass = isAiWin ? 'bg-red-500' : 'bg-green-300'
+        const squareClass = isAiWin ? squareClasses.lose : squareClasses.win;
         if(isAiWin) {
-            $('#player').text('You Lost').addClass('text-red-500');
+            $('#player').text('You Lost').addClass(playerClass.lose);
         } else {
             const message = vsAi ? 'You Win' : ('Winner: ' + (currentPlayer === '0' ? '0s' : 'Xs'));
-            $('#player').text(message).addClass('text-green-500');
+            $('#player').text(message).addClass(playerClass.win);
         }
         winningSquares.forEach(([x, y]) => $(`#square${x}${y}`).addClass(squareClass));        
     }
@@ -231,33 +235,28 @@
         return moves;
     }
     
-    function getRandomInt(min, max) {
+    function getRandomInteger(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min
     }
 
-    function altminimax(board, depth, player, alpha, beta, startTime, bestMove) {
+    function altminimax(board, depth, player, alpha, beta) {
         const maximiser = 'X';
         const minimiser = '0';
-        const maxDepth = 6; // change this for difficulty
-        const maxTimeSeconds = 10;
+        const maxDepth = 6;
         depth++;
 
         if (checkWin(board, maximiser, winLength)) {
-            return 100 + depth;
+            return 20 + depth;
         }
         if (checkWin(board, minimiser, winLength)) {
-            return -100 + depth;
+            return -20 + depth;
         }
         const availableMoves = getAvailableMoves(board);
         if (availableMoves.length === 0) {
             return 0;
         }
         if(depth > maxDepth) {
-            return getRandomInt(-25, 25);
-        }
-        if(depth > 2 && (startTime + maxTimeSeconds * 1000) > performance.now()) {
-            console.log("TIME OUT")
-            return 0;
+            return getRandomInteger(-25, 25);
         }
 
         if(player === maximiser) {
@@ -289,23 +288,23 @@
         }
     }
 
-    function findBestMove(board) {
-        let bestScore = -Infinity;
-        let bestMove;
+    function findBestMove(board, player, otherPlayer) {
+        let maxScore = -Infinity;
+        let optimalMove;
 
         for (let i = 0; i < board.length; i++) {
             for (let j = 0; j < board[i].length; j++) {
-                if (board[i][j] === "") {
-                    board[i][j] = "X"; // Simulate a move for the maximizing player
-                    let score = altminimax(board, 0, '0', -Infinity, Infinity);
-                    board[i][j] = ""; // Undo the move
+                if (board[i][j] === '') {
+                    board[i][j] = player;
+                    let score = altminimax(board, 0, otherPlayer, -Infinity, Infinity);
+                    board[i][j] = '';
 
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = [i, j];
+                    if (score > maxScore) {
+                        maxScore = score;
+                        optimalMove = [i, j];
                     }
                 }
             }
         }
-        return bestMove;
+        return optimalMove;
     }
