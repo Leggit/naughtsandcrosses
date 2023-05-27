@@ -18,6 +18,7 @@
 
 
     // TODO
+    // refine AI first bit
     // Timer
     // Difficulty levels
     // make ai work for larger boards and win as quick as possible
@@ -43,6 +44,11 @@
         
         updatePlayer(currentPlayer);
         createBoard(board, getBoardWidth(), boardSize);
+
+        if($('#aiFirstCheckbox:checked').val()) {
+            currentPlayer = 'X';
+            doAiMove();
+        }
     }
 
     function updateSliders() {
@@ -82,7 +88,7 @@
     }
 
     function createBoard(board, boardWidthPx, boardSize) {
-        const createSquare = (x, y) => `<div id="square${x}${y}" class="square" onclick="squareClick(${x}, ${y})"></div>`;
+        const createSquare = (x, y) => `<div tabindex="0" aria-roledescription="square" id="square${x}${y}" class="square" onkeypress="squareClick(${x}, ${y})" onclick="squareClick(${x}, ${y})"></div>`;
         const createRow = (y, row) => '<div class="row">' + row.map((_, index) => createSquare(y, index)).join(' ') + '</div>';
         $('#board').html(board.map((row, index) => createRow(index, row)).join(''));
         $(':root').css({'--squareLength':  boardWidthPx / boardSize});
