@@ -8,6 +8,7 @@ let vsAi = true;
 let gameActive = true;
 let gameLength = Infinity;
 let timer;
+let firstTurn = true;
 
 const squareClasses = {
   lose: "bg-red-500 text-white",
@@ -17,25 +18,44 @@ const squareClasses = {
 const activeClasses = "bg-green-500 text-white shadow-xl";
 
 const players = {
-    'X': {
-        symbol: 'X',
-        opposite: 'O',
-        isAi: false,
-        remainingTime: Infinity
-    },
-    'O': {
-        symbol: 'O',
-        opposite: 'X', 
-        isAi: false,
-        remainingTime: Infinity
-    }
-}
+  X: {
+    key: "X",
+    symbol: "X",
+    opposite: "O",
+    isAi: false,
+    remainingTime: Infinity,
+  },
+  O: {
+    key: "O",
+    symbol: "O",
+    opposite: "X",
+    isAi: false,
+    remainingTime: Infinity,
+  },
+};
 
 $(() => {
   $("#boardSize").on("input", updateSliders);
   $("#winLength").on("input", updateSliders);
+  setPlayerCharacterInputLimits()
   reset();
 });
+
+function setPlayerCharacterInputLimits() {
+  try {
+    const segmenter = new Intl.Segmenter();
+    const getVisibleLength = (value) => [...segmenter.segment(value)].length;
+    $('.player-input').on('beforeinput', (event) => {
+      console.log(event)
+      if(event.originalEvent.data && getVisibleLength(event.target.value + event.originalEvent.data) > 1) {
+        event.preventDefault();
+      }
+    })
+  } catch(e) {
+    console.log(e)
+    $('.player-input').attr('maxlength', 1);
+  }
+}
 
 function getBoardWidth() {
   return getComputedStyle($(":root")[0])
@@ -44,17 +64,17 @@ function getBoardWidth() {
 }
 
 function tick(player) {
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-        if(gameActive) {
-            player.remainingTime = player.remainingTime - 0.1
-            $('#timer' + player.symbol).text(Math.round(player.remainingTime) + "s");
-            if(player.remainingTime <= 0) {
-                announceWin();
-            }
-        }
-        tick(player);
-    }, 100)
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    if (gameActive) {
+      player.remainingTime = player.remainingTime - 0.1;
+      $("#timer" + player.key).text(Math.round(player.remainingTime) + "s");
+      if (player.remainingTime <= 0) {
+        announceWin();
+      }
+    }
+    tick(player);
+  }, 100);
 }
 
 function reset() {
@@ -63,11 +83,12 @@ function reset() {
     .map(() => [...Array(boardSize).fill("")]);
   currentPlayer = players["O"];
   vsAi = $("#humanRadio:checked").val() === undefined;
-  players['X'].isAi = vsAi;
+  players["X"].isAi = vsAi;
   gameActive = true;
-  gameLength = parseFloat($('#gameLength').val());
-  players['X'].remainingTime = gameLength;
-  players['O'].remainingTime = gameLength;
+  firstTurn = true;
+  gameLength = parseFloat($("#gameLength").val());
+  players["X"].remainingTime = gameLength;
+  players["O"].remainingTime = gameLength;
 
   $(".square").text("").removeClass(Object.values(squareClasses).join(" "));
 
@@ -75,7 +96,10 @@ function reset() {
   createBoard(board, getBoardWidth(), boardSize);
 
   $("#result").hide();
-  $('#gameStatus').show();
+  $("#gameStatus").show();
+  $(".clock").removeClass("active");
+  $('.player-input').attr('disabled', false);
+
 
   if ($("#aiFirstCheckbox:checked").val() && vsAi) {
     currentPlayer = players["X"];
@@ -84,11 +108,11 @@ function reset() {
   }
 
   if (gameLength === Infinity) {
-    $('.timer').hide();
+    $(".timer").hide();
   } else {
     tick(currentPlayer);
-    $('.timer').show()
-    $('.timer span').text(gameLength + 's');
+    $(".timer").show();
+    $(".timer span").text(gameLength + "s");
   }
 }
 
@@ -137,7 +161,7 @@ function updateSliders() {
 
 function createBoard(board, boardWidthPx, boardSize) {
   const createSquare = (x, y) =>
-    `<div tabindex="0" aria-roledescription=" position row:${x}, column:${y}" id="square${x}${y}" class="square" onkeypress="squareClick(${x}, ${y})" onclick="squareClick(${x}, ${y})"></div>`;
+    `<div tabindex="0" aria-roledescription="square" position row:${x}, column:${y}" id="square${x}${y}" class="square" onkeypress="squareClick(${x}, ${y})" onclick="squareClick(${x}, ${y})"></div>`;
   const createRow = (y, row) =>
     '<div class="row">' +
     row.map((_, index) => createSquare(y, index)).join(" ") +
@@ -148,6 +172,13 @@ function createBoard(board, boardWidthPx, boardSize) {
 
 function squareClick(x, y, isAiTurn) {
   if (board[x][y] || !gameActive) return;
+
+  if (firstTurn) {
+    firstTurn = false;
+    $('.player-input').attr('disabled', true);
+    players['X'].symbol = $('#xInput').val();
+    players['O'].symbol = $('#oInput').val();
+  }
 
   $(`#square${x}${y}`).text(currentPlayer.symbol);
   board[x][y] = currentPlayer.symbol;
@@ -167,7 +198,9 @@ function doNextIteration() {
   currentPlayer = players[currentPlayer.opposite];
   const isAiTurn = currentPlayer.isAi;
   updatePlayer(currentPlayer, isAiTurn);
-  tick(currentPlayer);
+  if (gameLength !== Infinity) {
+    tick(currentPlayer);
+  }
   if (isAiTurn) {
     doAiMove();
   }
@@ -175,24 +208,22 @@ function doNextIteration() {
 
 function doAiMove() {
   setTimeout(() => {
-    const bestMove = abminimax(board, 0, currentPlayer.symbol, -Infinity, Infinity);
+    const bestMove = abminimax(board, 0, currentPlayer, -Infinity, Infinity);
     squareClick(bestMove[0], bestMove[1], true);
   });
 }
 
 function announceWin(winningSquares, isAiWin) {
   gameActive = false;
-  $('#gameStatus').hide();
-  $('#result').show();
+  $("#gameStatus").hide();
+  $("#result").show();
 
   const squareClass = isAiWin ? squareClasses.lose : squareClasses.win;
-  
+
   if (isAiWin) {
     $("#result").text("You Lost").addClass(squareClasses.lose);
   } else {
-    const message = vsAi
-      ? "You Win"
-      : "Winner: " + currentPlayer.symbol;
+    const message = vsAi ? "You Win" : "Winner: " + currentPlayer.symbol;
     $("#result").text(message).addClass(squareClasses.win);
   }
   winningSquares.forEach(([x, y]) =>
@@ -202,16 +233,18 @@ function announceWin(winningSquares, isAiWin) {
 
 function announceDraw() {
   gameActive = false;
-  $('#gameStatus').hide();
-  $("#result").show().text("Draw").addClass('bg-gray-500');
+  $("#gameStatus").hide();
+  $("#result").show().text("Draw").addClass("bg-gray-500");
   $(".square").addClass("bg-gray-500");
 }
 
 function updatePlayer(player, isAiPlayer) {
-  const statusDivId = '#gameStatus' + player.symbol;
-  const inactiveStatusDivId = '#gameStatus' + player.opposite;
-  $(statusDivId).addClass('shadow-lg bg-green-500 text-white');
-  $(inactiveStatusDivId).removeClass('shadow-lg bg-green-500 text-white');
+  const statusDivId = "#gameStatus" + player.key;
+  const inactiveStatusDivId = "#gameStatus" + player.opposite;
+  $(statusDivId).addClass("shadow-lg bg-green-500 text-white");
+  $(inactiveStatusDivId).removeClass("shadow-lg bg-green-500 text-white");
+  $("#gameStatus" + player.opposite + " .clock").removeClass("active");
+  $("#gameStatus" + player.key + " .clock").addClass("active");
 }
 
 function checkWin(board, playerSymbol, winLength) {
@@ -315,13 +348,13 @@ function getRandomInteger(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function abminimax(board, depth, playerSymbol, alpha, beta) {
+function abminimax(board, depth, player, alpha, beta) {
   const availableMoves = getAvailableMoves(board);
 
-  if (checkWin(board, players['X'].symbol, winLength)) {
+  if (checkWin(board, players["X"].symbol, winLength)) {
     return { score: 20 };
   }
-  if (checkWin(board, players['O'].symbol, winLength)) {
+  if (checkWin(board, players["O"].symbol, winLength)) {
     return { score: -20 };
   }
   if (availableMoves.length === 0) {
@@ -331,11 +364,17 @@ function abminimax(board, depth, playerSymbol, alpha, beta) {
   let bestMove;
   let score;
 
-  if (playerSymbol === 'X') {
+  if (player === players["X"]) {
     score = -Infinity;
     for (const move of availableMoves) {
-      board[move[0]][move[1]] = playerSymbol;
-      const result = abminimax(board, depth + 1, players[playerSymbol].opposite, alpha, beta);
+      board[move[0]][move[1]] = player.symbol;
+      const result = abminimax(
+        board,
+        depth + 1,
+        players[player.opposite],
+        alpha,
+        beta
+      );
       board[move[0]][move[1]] = "";
 
       if (result.score > score) {
@@ -351,8 +390,14 @@ function abminimax(board, depth, playerSymbol, alpha, beta) {
   } else {
     score = Infinity;
     for (const move of availableMoves) {
-      board[move[0]][move[1]] = playerSymbol;
-      const result = abminimax(board, depth + 1, players[playerSymbol].opposite, alpha, beta);
+      board[move[0]][move[1]] = player.symbol;
+      const result = abminimax(
+        board,
+        depth + 1,
+        players[player.opposite],
+        alpha,
+        beta
+      );
       board[move[0]][move[1]] = "";
 
       if (result.score < score) {

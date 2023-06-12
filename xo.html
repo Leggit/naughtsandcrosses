@@ -31,7 +31,7 @@
       flex: 1;
       border: 1px solid black;
       text-align: center;
-      font-size: calc(var(--squareLength) * 0.75);
+      font-size: calc(var(--squareLength) * 0.7);
       line-height: var(--squareLength);
     }
 
@@ -94,21 +94,25 @@
         <div class="rounded bg-white mb-3 text-center">
           <div id="gameStatus" class="flex w-full rounded">
             <div id="gameStatusX" class="flex-1 p-2 rounded-l">
-              <div class="text-3xl">X</div>
+              <div class="text-3xl">
+                <input id="xInput" type="text" value="X" class="player-input w-full text-center bg-transparent border-none focus:outline-none">
+              </div>
               <div hidden class="timer">
-                <div class="clock active text-center inline-block">🕒</div> 
+              <div class="clock text-center inline-block">🕒</div> 
                 <span id="timerX" class="font-bold">10s</span></div>
             </div>
             <div id="gameStatusO" class="flex-1 p-2 rounded-r">
-              <div class="text-3xl">O</div>
+              <div class="text-3xl">
+                <input id="oInput" type="text" value="O" class="player-input w-full text-center bg-transparent border-none focus:outline-none">
+              </div>
               <div hidden class="timer">
-                <div class="clock active text-center inline-block">🕒</div> 
+                <div class="clock text-center inline-block">🕒</div> 
                 <span id="timerO" class="font-bold">10s</span>
               </div>
             </div>
           </div>
 
-          <div id="result" hidden class="text-3xl font-bold rounded shadow-lg p-5"></div>
+          <div id="result" hidden class="text-3xl font-rounded shadow-lg p-5"></div>
         </div>
 
         <div class="flex-grow">
