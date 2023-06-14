@@ -12,10 +12,10 @@ let firstTurn = true;
 
 const squareClasses = {
   lose: "bg-red-500 text-white",
-  win: "bg-green-300 text-white",
+  win: "bg-green-600 text-white",
   draw: "bg-gray-500 text-white",
 };
-const activeClasses = "bg-green-500 text-white shadow-xl";
+const activeClasses = "bg-green-600 text-white shadow-xl";
 
 const players = {
   X: {
@@ -52,7 +52,7 @@ function setPlayerCharacterInputLimits() {
       }
     })
   } catch(e) {
-    console.log(e)
+    // Intl is unsported on some browsers
     $('.player-input').attr('maxlength', 1);
   }
 }
@@ -70,7 +70,7 @@ function tick(player) {
       player.remainingTime = player.remainingTime - 0.1;
       $("#timer" + player.key).text(Math.round(player.remainingTime) + "s");
       if (player.remainingTime <= 0) {
-        announceWin();
+        announceTimeout();
       }
     }
     tick(player);
@@ -97,7 +97,6 @@ function reset() {
 
   $("#result").hide();
   $("#gameStatus").show();
-  $(".clock").removeClass("active");
   $('.player-input').attr('disabled', false);
 
 
@@ -106,6 +105,10 @@ function reset() {
     updatePlayer(currentPlayer);
     doAiMove();
   }
+
+  $(".clock").removeClass("active");
+  $("#gameStatus" + currentPlayer.key + " .clock").addClass("active");
+
 
   if (gameLength === Infinity) {
     $(".timer").hide();
@@ -170,7 +173,7 @@ function createBoard(board, boardWidthPx, boardSize) {
   $(":root").css({ "--squareLength": boardWidthPx / boardSize });
 }
 
-function squareClick(x, y, isAiTurn) {
+function squareClick(x, y) {
   if (board[x][y] || !gameActive) return;
 
   if (firstTurn) {
@@ -186,7 +189,7 @@ function squareClick(x, y, isAiTurn) {
   const win = checkWin(board, currentPlayer.symbol, winLength);
 
   if (win) {
-    announceWin(win, isAiTurn);
+    announceWin(win);
   } else if (!getAvailableMoves(board).length) {
     announceDraw();
   } else {
@@ -196,12 +199,11 @@ function squareClick(x, y, isAiTurn) {
 
 function doNextIteration() {
   currentPlayer = players[currentPlayer.opposite];
-  const isAiTurn = currentPlayer.isAi;
-  updatePlayer(currentPlayer, isAiTurn);
+  updatePlayer(currentPlayer);
   if (gameLength !== Infinity) {
     tick(currentPlayer);
   }
-  if (isAiTurn) {
+  if (currentPlayer.isAi) {
     doAiMove();
   }
 }
@@ -209,26 +211,34 @@ function doNextIteration() {
 function doAiMove() {
   setTimeout(() => {
     const bestMove = abminimax(board, 0, currentPlayer, -Infinity, Infinity);
+    console.log(bestMove)
     squareClick(bestMove[0], bestMove[1], true);
   });
 }
 
-function announceWin(winningSquares, isAiWin) {
+function announceWin(winningSquares) {
   gameActive = false;
   $("#gameStatus").hide();
   $("#result").show();
 
-  const squareClass = isAiWin ? squareClasses.lose : squareClasses.win;
-
-  if (isAiWin) {
+  if (currentPlayer.isAi) {
     $("#result").text("You Lost").addClass(squareClasses.lose);
   } else {
     const message = vsAi ? "You Win" : "Winner: " + currentPlayer.symbol;
     $("#result").text(message).addClass(squareClasses.win);
   }
+
+  const squareClass = currentPlayer.isAi ? squareClasses.lose : squareClasses.win;
   winningSquares.forEach(([x, y]) =>
     $(`#square${x}${y}`).addClass(squareClass)
   );
+}
+
+function announceTimeout() {
+  gameActive = false;
+  $("#gameStatus").hide();
+  $("#result").show().text(currentPlayer.symbol + " lost 🐌").addClass(squareClasses.lose);
+  $(".square").addClass("bg-gray-500");
 }
 
 function announceDraw() {
@@ -238,11 +248,11 @@ function announceDraw() {
   $(".square").addClass("bg-gray-500");
 }
 
-function updatePlayer(player, isAiPlayer) {
+function updatePlayer(player) {
   const statusDivId = "#gameStatus" + player.key;
   const inactiveStatusDivId = "#gameStatus" + player.opposite;
-  $(statusDivId).addClass("shadow-lg bg-green-500 text-white");
-  $(inactiveStatusDivId).removeClass("shadow-lg bg-green-500 text-white");
+  $(statusDivId).addClass("shadow-lg bg-green-600 text-white");
+  $(inactiveStatusDivId).removeClass("shadow-lg bg-green-600 text-white");
   $("#gameStatus" + player.opposite + " .clock").removeClass("active");
   $("#gameStatus" + player.key + " .clock").addClass("active");
 }
