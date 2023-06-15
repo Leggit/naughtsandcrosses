@@ -1,22 +1,3 @@
-let currentPlayer = "O";
-let boardSize = 3;
-let winLength = 3;
-let board = Array(boardSize)
-  .fill([])
-  .map(() => [...Array(boardSize).fill("")]);
-let vsAi = true;
-let gameActive = true;
-let gameLength = Infinity;
-let timer;
-let firstTurn = true;
-
-const squareClasses = {
-  lose: "bg-red-500 text-white",
-  win: "bg-green-600 text-white",
-  draw: "bg-gray-500 text-white",
-};
-const activeClasses = "bg-green-600 text-white shadow-xl";
-
 const players = {
   X: {
     key: "X",
@@ -33,26 +14,54 @@ const players = {
     remainingTime: Infinity,
   },
 };
+const squareClasses = {
+  lose: "bg-red-500 text-white",
+  win: "bg-green-600 text-white",
+  draw: "bg-gray-500 text-white",
+};
+const activeClasses = "bg-green-600 text-white shadow-xl";
+const maxAiBoardSize = 5;
 
-$(() => {
-  $("#boardSize").on("input", updateSliders);
-  $("#winLength").on("input", updateSliders);
+let currentPlayer = players["O"];
+let boardSize = 3;
+let winLength = 3;
+let board;
+let gameActive = true;
+let gameLength = Infinity;
+let timer;
+let firstTurn = true;
+
+$(() => init());
+
+function init() {
+  setupSliderEvents();
   setPlayerCharacterInputLimits()
   reset();
-});
+}
+
+function setupSliderEvents() {
+  $("#boardSize").on("input", updateSliders);
+  $("#winLength").on("input", updateSliders);
+}
+
+function createEmtpyBoardArray() {
+  return Array(boardSize)
+  .fill([])
+  .map(() => [...Array(boardSize).fill("")]);
+}
 
 function setPlayerCharacterInputLimits() {
   try {
     const segmenter = new Intl.Segmenter();
     const getVisibleLength = (value) => [...segmenter.segment(value)].length;
-    $('.player-input').on('beforeinput', (event) => {
-      console.log(event)
-      if(event.originalEvent.data && getVisibleLength(event.target.value + event.originalEvent.data) > 1) {
+    const handleBeforeInput = (event) => {
+      if (event.originalEvent.data && getVisibleLength(event.target.value + event.originalEvent.data) > 1) {
         event.preventDefault();
       }
-    })
+    }
+    $('.player-input').on('beforeinput', handleBeforeInput);
   } catch(e) {
-    // Intl is unsported on some browsers
+    // Intl is not supported on some browsers - fallback to maxlength attribute
     $('.player-input').attr('maxlength', 1);
   }
 }
@@ -78,12 +87,9 @@ function tick(player) {
 }
 
 function reset() {
-  board = Array(boardSize)
-    .fill([])
-    .map(() => [...Array(boardSize).fill("")]);
+  board = createEmtpyBoardArray(boardSize);
   currentPlayer = players["O"];
-  vsAi = $("#humanRadio:checked").val() === undefined;
-  players["X"].isAi = vsAi;
+  players["X"].isAii = $("#humanRadio:checked").val() === undefined;
   gameActive = true;
   firstTurn = true;
   gameLength = parseFloat($("#gameLength").val());
@@ -93,14 +99,14 @@ function reset() {
   $(".square").text("").removeClass(Object.values(squareClasses).join(" "));
 
   updatePlayer(currentPlayer);
-  createBoard(board, getBoardWidth(), boardSize);
+  createHtmlBoard(board, getBoardWidth(), boardSize);
 
   $("#result").hide();
   $("#gameStatus").show();
   $('.player-input').attr('disabled', false);
 
 
-  if ($("#aiFirstCheckbox:checked").val() && vsAi) {
+  if ($("#aiFirstCheckbox:checked").val() && players["X"].isAi) {
     currentPlayer = players["X"];
     updatePlayer(currentPlayer);
     doAiMove();
@@ -123,54 +129,55 @@ function updateSliders() {
   boardSize = parseInt($("#boardSize").val());
   winLength = parseInt($("#winLength").val());
 
-  $("#boardSizes option").removeClass("text-green-700 font-bold");
-  $(`#boardSizes option[value='${boardSize}']`).addClass(
-    "text-green-700 font-bold"
-  );
-  $("#winLengths option").removeClass("text-green-700 font-bold");
-  $(`#winLengths option[value='${winLength}']`).addClass(
-    "text-green-700 font-bold"
-  );
+  const className = "text-green-700 font-bold"
+  $("#boardSizes option").removeClass(className);
+  $(`#boardSizes option[value='${boardSize}']`).addClass(className);
+  $("#winLengths option").removeClass(className);
+  $(`#winLengths option[value='${winLength}']`).addClass(className);
+
 
   if (boardSize == 3) {
     $("#winLength").hide();
     $("#winLengths").hide();
     $("#winLengthLabel").text("Win Length: 3");
   } else {
-    $("#winLength").show();
-    $("#winLength").attr("max", boardSize);
-    $("#winLengths option").hide();
-    $("#winLengths option")
-      .filter(function () {
-        return parseInt($(this).attr("value")) <= boardSize;
-      })
-      .show();
+    $("#winLength").show().attr("max", boardSize);
+    $("#winLengths option").hide().filter(function () {
+      return parseInt($(this).attr("value")) <= boardSize;
+    }).show();
     $("#winLengths").show();
     $("#winLengthLabel").text("Win Length:");
   }
 
-  if (boardSize > 5) {
-    vsAi = false;
-    $("#aiRadio").attr("checked", vsAi).attr("disabled", !vsAi);
-    $("#aiFirstCheckbox").attr("disabled", true);
-    $("#aiFirstCheckbox").prop("checked", false);
-    $("#humanRadio").attr("checked", !vsAi);
+  if (boardSize > maxAiBoardSize) {
+    $("#aiRadio").prop("checked", false).attr("disabled", true);
+    $("#aiFirstCheckbox").attr("disabled", true).prop("checked", false);
+    $("#humanRadio").prop("checked", true);
   } else {
-    $("#aiRadio").attr("checked", vsAi).attr("disabled", false);
-    $("#humanRadio").attr("checked", !vsAi);
+    $("#aiRadio").attr("disabled", false);
     $("#aiFirstCheckbox").attr("disabled", false);
   }
 }
 
-function createBoard(board, boardWidthPx, boardSize) {
+function createHtmlBoard(board, boardWidthPx, boardSize) {
   const createSquare = (x, y) =>
-    `<div tabindex="0" aria-roledescription="square" position row:${x}, column:${y}" id="square${x}${y}" class="square" onkeypress="squareClick(${x}, ${y})" onclick="squareClick(${x}, ${y})"></div>`;
-  const createRow = (y, row) =>
-    '<div class="row">' +
-    row.map((_, index) => createSquare(y, index)).join(" ") +
-    "</div>";
-  $("#board").html(board.map((row, index) => createRow(index, row)).join(""));
-  $(":root").css({ "--squareLength": boardWidthPx / boardSize });
+    `<div 
+    tabindex="0" 
+    aria-roledescription="position row:${x}, column:${y}" 
+    id="square${x}${y}" 
+    class="square"
+    onkeypress="squareClick(${x}, ${y})"
+    onclick="squareClick(${x}, ${y})"
+    ></div>`;
+  const createRow = (y, row) => `<div class="row">${row.map((_, index) => createSquare(y, index)).join(" ")}</div>`;
+  const boardHtml = board.map((row, index) => createRow(index, row)).join("");
+  $("#board").html(boardHtml);
+  updateSquareLengthCss(boardWidthPx, boardSize);
+}
+
+function updateSquareLengthCss(boardWidthPx, boardSize) {
+  const squareLength = boardWidthPx / boardSize;
+  $(":root").css({ "--squareLength": squareLength });
 }
 
 function squareClick(x, y) {
@@ -193,11 +200,11 @@ function squareClick(x, y) {
   } else if (!getAvailableMoves(board).length) {
     announceDraw();
   } else {
-    doNextIteration();
+    startNextTurn();
   }
 }
 
-function doNextIteration() {
+function startNextTurn() {
   currentPlayer = players[currentPlayer.opposite];
   updatePlayer(currentPlayer);
   if (gameLength !== Infinity) {
@@ -209,11 +216,8 @@ function doNextIteration() {
 }
 
 function doAiMove() {
-  setTimeout(() => {
-    const bestMove = abminimax(board, 0, currentPlayer, -Infinity, Infinity);
-    console.log(bestMove)
-    squareClick(bestMove[0], bestMove[1], true);
-  });
+  const bestMove = abminimax(board, 0, currentPlayer, -Infinity, Infinity);
+  squareClick(bestMove[0], bestMove[1]);
 }
 
 function announceWin(winningSquares) {
@@ -224,7 +228,7 @@ function announceWin(winningSquares) {
   if (currentPlayer.isAi) {
     $("#result").text("You Lost").addClass(squareClasses.lose);
   } else {
-    const message = vsAi ? "You Win" : "Winner: " + currentPlayer.symbol;
+    const message = players["X"].isAi ? "You Win" : "Winner: " + currentPlayer.symbol;
     $("#result").text(message).addClass(squareClasses.win);
   }
 
