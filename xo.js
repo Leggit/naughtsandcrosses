@@ -73,7 +73,7 @@ function setPlayerCharacterInputLimits() {
 
 function getBoardWidthPx() {
   return getComputedStyle($(":root")[0])
-    .getPropertyValue("--boardWidth")
+    .getPropertyValue("--boardWidthPx")
     .slice(0, -2);
 }
 
@@ -90,7 +90,7 @@ function reset() {
   players["X"].remainingTime = players["O"].remainingTime = parseFloat($("#gameLength").val());
   currentPlayer = aiFirst && players["X"].isAi ? players["X"] : players["O"];
 
-  updatePlayer(currentPlayer);
+  updateGameStatusUI(currentPlayer);
   createHtmlBoard(board, getBoardWidthPx(), boardSize);
   $(".square").text("").removeClass(Object.values(squareClasses).join(" "));
   $("#result").hide();
@@ -108,6 +108,10 @@ function reset() {
   }
 }
 
+/**
+ * Called at the start of a game
+ * Shows the timers on the UI and starts the remaining time countdown for the current player
+ */
 function startTimers() {
   timerTick(currentPlayer);
   $(".clock").removeClass("active");
@@ -116,10 +120,14 @@ function startTimers() {
   $(".timer span").text(currentPlayer.remainingTime + "s");
 }
 
+/**
+ * Handles the logic of ensuring the game is set up correctly as the user changes various game options
+ */
 function updateSliders() {
   boardSize = parseInt($("#boardSize").val());
   winLength = parseInt($("#winLength").val());
 
+  // Highlight the selected option the datalist for each slider
   const className = "text-green-700 font-bold"
   $("#boardSizes option").removeClass(className);
   $(`#boardSizes option[value='${boardSize}']`).addClass(className);
@@ -127,6 +135,8 @@ function updateSliders() {
   $(`#winLengths option[value='${winLength}']`).addClass(className);
 
 
+  // The win length can only be 3 on a 3x3 board, 
+  // otherwise the user can change the winlength to any number between 3 and the chosen board size
   if (boardSize == 3) {
     $("#winLength").hide();
     $("#winLengths").hide();
@@ -140,6 +150,7 @@ function updateSliders() {
     $("#winLengthLabel").text("Win Length:");
   }
 
+  // AI is too slow for large board sizes so we take this option away
   if (boardSize > maxAiBoardSize) {
     $("#aiRadio").prop("checked", false).attr("disabled", true);
     $("#aiFirstCheckbox").attr("disabled", true).prop("checked", false);
@@ -151,29 +162,42 @@ function updateSliders() {
 }
 
 function createHtmlBoard(board, boardWidthPx, boardSize) {
+  // Subfunction to create a single square div
   const createSquare = (x, y) =>
     `<div 
     tabindex="0" 
     aria-roledescription="position row:${x}, column:${y}" 
     id="square${x}${y}" 
     class="square"
-    onkeypress="squareClick(${x}, ${y})"
-    onclick="squareClick(${x}, ${y})"
+    onkeypress="selectSquareForTurn(${x}, ${y})"
+    onclick="selectSquareForTurn(${x}, ${y})"
     ></div>`;
+  // Subfunction to create a row of squares given a certain board length
   const createRow = (y, row) => `<div class="row">${row.map((_, index) => createSquare(y, index)).join(" ")}</div>`;
+
   const boardHtml = board.map((row, index) => createRow(index, row)).join("");
   $("#board").html(boardHtml);
   updateSquareLengthCss(boardWidthPx, boardSize);
 }
 
+/**
+ * Updates the CSS variable for squarelength so squares are correctly sized
+ */
 function updateSquareLengthCss(boardWidthPx, boardSize) {
   const squareLength = boardWidthPx / boardSize;
   $(":root").css({ "--squareLength": squareLength });
 }
 
-function onSquareClick(x, y) {
+/**
+ * Called every turn either when a user selects a square or in the code by the AI,
+ * Executes turn logic given the coordinates of the chosen square
+ * Contains a condition to do nothing if the square is already taken or if no game is active
+ */
+function selectSquareForTurn(x, y) {
+  // Do nothing if the square is taken or if the current game has ended
   if (board[x][y] || !isGameActive) return;
 
+  // Disable the player symbol inputs once the first turn has been taken
   if (isFirstTurn) {
     isFirstTurn = false;
     $('.player-input').attr('disabled', true);
@@ -181,11 +205,12 @@ function onSquareClick(x, y) {
     players['O'].symbol = $('#oInput').val();
   }
 
+  // Update the UI and in code representation of the board to reflect this turn
   $(`#square${x}${y}`).text(currentPlayer.symbol);
   board[x][y] = currentPlayer.symbol;
 
+  // Check if the game is in a terminal state and take the next appropriate action based on this
   const win = checkWin(board, currentPlayer.symbol, winLength);
-
   if (win) {
     announceWin(win);
   } else if (!getAvailableMoves(board).length) {
@@ -197,7 +222,7 @@ function onSquareClick(x, y) {
 
 function startNextTurn() {
   currentPlayer = players[currentPlayer.opposite];
-  updatePlayer(currentPlayer);
+  updateGameStatusUI(currentPlayer);
   if (currentPlayer.remainingTime !== Infinity) {
     timerTick(currentPlayer);
   }
@@ -222,7 +247,7 @@ function timerTick(player) {
 
 function doAiMove() {
   const bestMove = abminimax(board, 0, currentPlayer, -Infinity, Infinity);
-  onSquareClick(bestMove[0], bestMove[1]);
+  selectSquareForTurn(bestMove[0], bestMove[1]);
 }
 
 function announceWin(winningSquares) {
@@ -257,7 +282,10 @@ function announceDraw() {
   $(".square").addClass(squareClasses.draw);
 }
 
-function updatePlayer(player) {
+/**
+ * Update various elements in the gameStatus area to show the current active player etc.
+ */
+function updateGameStatusUI(player) {
   const statusDivId = "#gameStatus" + player.key;
   const inactiveStatusDivId = "#gameStatus" + player.opposite;
   $(statusDivId).addClass("shadow-lg bg-green-600 text-white");
@@ -343,6 +371,7 @@ function checkWin(board, playerSymbol, winLength) {
     return false;
   };
 
+  // Use JS "truthy" functionality to either return falsey for no win or an array (Truthy) for the winning squares
   return (
     checkRows() ||
     checkCols() ||

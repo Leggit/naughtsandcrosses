@@ -1,26 +1,27 @@
 :root {
-  --boardWidth: 450px;
-  --squareLength: calc(var(--boardWidth) / 3);
+  /* Variables used to size the game board and game board squares correctly */ 
+  --boardWidthPx: 450px;
+  --squareLengthPx: calc(var(--boardWidthPx) / 3);
 }
 
 #board {
-  width: var(--boardWidth);
-  height: var(--boardWidth);
+  width: var(--boardWidthPx);
+  height: var(--boardWidthPx);
   margin: auto;
   user-select: none;
 }
 
 .row {
   display: flex;
-  height: var(--squareLength);
+  height: var(--squareLengthPx);
 }
 
 .square {
   flex: 1;
   border: 1px solid black;
   text-align: center;
-  font-size: calc(var(--squareLength) * 0.7);
-  line-height: var(--squareLength);
+  font-size: calc(var(--squareLengthPx) * 0.7);
+  line-height: var(--squareLengthPx);
 }
 
 datalist {
@@ -46,9 +47,10 @@ datalist option {
   animation-timing-function: linear;
 }
 
+/* Make the board smaller on phone screens */
 @media only screen and (max-width: 768px) {
   :root {
-    --boardWidth: 300px;
+    --boardWidthPx: 300px;
   }
 }
 
