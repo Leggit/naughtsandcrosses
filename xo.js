@@ -1,3 +1,4 @@
+/* Constants */
 const players = {
   X: {
     key: "X",
@@ -22,15 +23,16 @@ const squareClasses = {
 const activeClasses = "bg-green-600 text-white shadow-xl";
 const maxAiBoardSize = 5;
 
+/* Global variables */
 let currentPlayer = players["O"];
 let boardSize = 3;
 let winLength = 3;
 let board;
-let gameActive = true;
-let gameLength = Infinity;
-let timer;
-let firstTurn = true;
+let isGameActive = true;
+let currentTickTimer;
+let isFirstTurn = true;
 
+/* Init when page is ready */
 $(() => init());
 
 function init() {
@@ -40,8 +42,7 @@ function init() {
 }
 
 function setupSliderEvents() {
-  $("#boardSize").on("input", updateSliders);
-  $("#winLength").on("input", updateSliders);
+  $("#boardSize, #winLength").on("input", updateSliders);
 }
 
 function createEmtpyBoardArray() {
@@ -50,6 +51,10 @@ function createEmtpyBoardArray() {
   .map(() => [...Array(boardSize).fill("")]);
 }
 
+/**
+ * Limit the number of visible characters that can be input as a player symbol to 1
+ * The default method of doing this is not compatible with some browsers so contains a fallback to using the maxlength attribute
+ */
 function setPlayerCharacterInputLimits() {
   try {
     const segmenter = new Intl.Segmenter();
@@ -66,63 +71,49 @@ function setPlayerCharacterInputLimits() {
   }
 }
 
-function getBoardWidth() {
+function getBoardWidthPx() {
   return getComputedStyle($(":root")[0])
     .getPropertyValue("--boardWidth")
     .slice(0, -2);
 }
 
-function tick(player) {
-  clearTimeout(timer);
-  timer = setTimeout(() => {
-    if (gameActive) {
-      player.remainingTime = player.remainingTime - 0.1;
-      $("#timer" + player.key).text(Math.round(player.remainingTime) + "s");
-      if (player.remainingTime <= 0) {
-        announceTimeout();
-      }
-    }
-    tick(player);
-  }, 100);
-}
-
+/**
+ * Clears the board and sets up for a new game using the game parameters chosen by the user
+ * Starts the timers and makes the AI take the first move (if applicable)
+ */
 function reset() {
   board = createEmtpyBoardArray(boardSize);
-  currentPlayer = players["O"];
-  players["X"].isAii = $("#humanRadio:checked").val() === undefined;
-  gameActive = true;
-  firstTurn = true;
-  gameLength = parseFloat($("#gameLength").val());
-  players["X"].remainingTime = gameLength;
-  players["O"].remainingTime = gameLength;
-
-  $(".square").text("").removeClass(Object.values(squareClasses).join(" "));
+  isGameActive = true;
+  isFirstTurn = true;
+  const aiFirst = $("#aiFirstCheckbox:checked").val();
+  players["X"].isAi = $("#humanRadio:checked").val() === undefined;
+  players["X"].remainingTime = players["O"].remainingTime = parseFloat($("#gameLength").val());
+  currentPlayer = aiFirst && players["X"].isAi ? players["X"] : players["O"];
 
   updatePlayer(currentPlayer);
-  createHtmlBoard(board, getBoardWidth(), boardSize);
-
+  createHtmlBoard(board, getBoardWidthPx(), boardSize);
+  $(".square").text("").removeClass(Object.values(squareClasses).join(" "));
   $("#result").hide();
   $("#gameStatus").show();
   $('.player-input').attr('disabled', false);
 
-
-  if ($("#aiFirstCheckbox:checked").val() && players["X"].isAi) {
-    currentPlayer = players["X"];
-    updatePlayer(currentPlayer);
-    doAiMove();
-  }
-
-  $(".clock").removeClass("active");
-  $("#gameStatus" + currentPlayer.key + " .clock").addClass("active");
-
-
-  if (gameLength === Infinity) {
+  if (currentPlayer.remainingTime === Infinity) {
     $(".timer").hide();
   } else {
-    tick(currentPlayer);
-    $(".timer").show();
-    $(".timer span").text(gameLength + "s");
+    startTimers();
   }
+
+  if (aiFirst) {
+    doAiMove();
+  }
+}
+
+function startTimers() {
+  timerTick(currentPlayer);
+  $(".clock").removeClass("active");
+  $("#gameStatus" + currentPlayer.key + " .clock").addClass("active");
+  $(".timer").show();
+  $(".timer span").text(currentPlayer.remainingTime + "s");
 }
 
 function updateSliders() {
@@ -180,11 +171,11 @@ function updateSquareLengthCss(boardWidthPx, boardSize) {
   $(":root").css({ "--squareLength": squareLength });
 }
 
-function squareClick(x, y) {
-  if (board[x][y] || !gameActive) return;
+function onSquareClick(x, y) {
+  if (board[x][y] || !isGameActive) return;
 
-  if (firstTurn) {
-    firstTurn = false;
+  if (isFirstTurn) {
+    isFirstTurn = false;
     $('.player-input').attr('disabled', true);
     players['X'].symbol = $('#xInput').val();
     players['O'].symbol = $('#oInput').val();
@@ -207,21 +198,35 @@ function squareClick(x, y) {
 function startNextTurn() {
   currentPlayer = players[currentPlayer.opposite];
   updatePlayer(currentPlayer);
-  if (gameLength !== Infinity) {
-    tick(currentPlayer);
+  if (currentPlayer.remainingTime !== Infinity) {
+    timerTick(currentPlayer);
   }
   if (currentPlayer.isAi) {
     doAiMove();
   }
 }
 
+function timerTick(player) {
+  clearTimeout(currentTickTimer);// So that if the player takes their turn during the timout window the current tick is cancelled
+  currentTickTimer = setTimeout(() => {
+    if (isGameActive) {
+      player.remainingTime = player.remainingTime - 0.1;
+      $("#timer" + player.key).text(Math.round(player.remainingTime) + "s");
+      if (player.remainingTime <= 0) {
+        announceTimeout();
+      }
+    }
+    timerTick(player);// Repeat timer logic until this function is called elsewhere with the other player passed in
+  }, 100);
+}
+
 function doAiMove() {
   const bestMove = abminimax(board, 0, currentPlayer, -Infinity, Infinity);
-  squareClick(bestMove[0], bestMove[1]);
+  onSquareClick(bestMove[0], bestMove[1]);
 }
 
 function announceWin(winningSquares) {
-  gameActive = false;
+  isGameActive = false;
   $("#gameStatus").hide();
   $("#result").show();
 
@@ -239,17 +244,17 @@ function announceWin(winningSquares) {
 }
 
 function announceTimeout() {
-  gameActive = false;
+  isGameActive = false;
   $("#gameStatus").hide();
   $("#result").show().text(currentPlayer.symbol + " lost 🐌").addClass(squareClasses.lose);
-  $(".square").addClass("bg-gray-500");
+  $(".square").addClass(squareClasses.lose);
 }
 
 function announceDraw() {
-  gameActive = false;
+  isGameActive = false;
   $("#gameStatus").hide();
-  $("#result").show().text("Draw").addClass("bg-gray-500");
-  $(".square").addClass("bg-gray-500");
+  $("#result").show().text("Draw").addClass(squareClasses.draw);
+  $(".square").addClass(squareClasses.draw);
 }
 
 function updatePlayer(player) {
@@ -268,7 +273,7 @@ function checkWin(board, playerSymbol, winLength) {
         const currentLine = [];
         for (let k = 0; k < winLength; k++) {
           if (board[i][j + k] === playerSymbol) {
-            currentLine.push([i, j + k]);
+            currentLine.push([i, j + k]); // Store
           } else {
             break;
           }
