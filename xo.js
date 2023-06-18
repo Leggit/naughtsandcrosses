@@ -21,7 +21,7 @@ const squareClasses = {
   draw: "bg-gray-500 text-white",
 };
 const activeClasses = "bg-green-600 text-white shadow-xl";
-const maxAiBoardSize = 9;
+const maxAiBoardSize = 7;
 
 /* Global variables */
 let currentPlayer = players["O"];
@@ -266,7 +266,7 @@ function timerTick(player) {
 function doAiMove() {
   // Using setTimout means the UI updates with the previous move before calculating the next best move
   setTimeout(() => {
-    const bestMove = abminimax(board, 0, currentPlayer, -Infinity, Infinity);
+    const bestMove = minimax(board, 0, currentPlayer, -Infinity, Infinity);
     selectSquareForTurn(bestMove[0], bestMove[1]);
   });
 }
@@ -323,15 +323,17 @@ function updateGameStatusUI(player) {
 }
 
 function checkWin(board, playerSymbol, winLength) {
+  // Go through every square and see if it is the start of a winning horizonal line
+  // Each subfunction either returns false or an array of winning squares
   const checkRows = () => {
     for (let i = 0; i < board.length; i++) {
       for (let j = 0; j <= board.length - winLength; j++) {
         const currentLine = [];
         for (let k = 0; k < winLength; k++) {
           if (board[i][j + k] === playerSymbol) {
-            currentLine.push([i, j + k]); // Store
+            currentLine.push([i, j + k]); // Store potential winning squares
           } else {
-            break;
+            break; // Not a winning line
           }
         }
         if (currentLine.length === winLength) {
@@ -409,24 +411,18 @@ function checkWin(board, playerSymbol, winLength) {
   );
 }
 
-function getAvailableMoves(board) {
-  const moves = [];
-  for (let i = 0; i < board.length; i++) {
-    for (let j = 0; j < board.length; j++) {
-      if (board[i][j] === "") {
-        moves.push([i, j]);
-      }
-    }
-  }
-  return moves;
-}
-
+/**
+ * Cycles through the provided board and finds empty squares
+ * Returns an array of moves in the format [x, y]
+ * Limit to nearby flag means only moves that are next to occupied squares will be returned
+ * - this is useful for making the AI run faster on larger boards
+ */
 function getAvailableMoves(board, limitToNearby) {
   const moves = [];
   for (let i = 0; i < board.length; i++) {
     for (let j = 0; j < board.length; j++) {
       if (board[i][j] === "") {
-        if (!limitToNearby || nearByOccupied(board, i, j)) {
+        if (!limitToNearby || isNearBySquareOccupied(board, i, j)) {
           moves.push([i, j]);
         }
       }
@@ -435,11 +431,14 @@ function getAvailableMoves(board, limitToNearby) {
   return moves;
 }
 
-function nearByOccupied(board, i, j) {
-  const xMin = i - 1 >= 0 ? i - 1 : 0;
-  const xMax = i + 1;
-  const yMin = j - 1 >= 0 ? j - 1 : 0;
-  const yMax = j + 1;
+/**
+ * Checks to see if one or more squares within the passed in distance (default of 1) is occupied
+ */
+function isNearBySquareOccupied(board, i, j, distance = 1) {
+  const xMin = i - distance >= 0 ? i - distance : 0;
+  const xMax = i + distance;
+  const yMin = j - distance >= 0 ? j - distance : 0;
+  const yMax = j + distance;
 
   for (let x = xMin; x <= xMax; x++) {
     for (let y = yMin; y <= yMax; y++) {
@@ -453,54 +452,65 @@ function nearByOccupied(board, i, j) {
   return false;
 }
 
+/**
+ * Utility function to return a randon integer between the supplied min and max integers (inclusive)
+ */
 function getRandomInteger(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function abminimax(board, depth, player, alpha, beta) {
+/**
+ * Minimax function that uses a form alpha beta pruning
+ */
+function minimax(board, depth, player, alpha, beta) {
+  // Limit the available moves returned on larger boards
   const availableMoves = getAvailableMoves(board, board.length > 4);
 
+  // Terminal condition checking
   if (checkWin(board, players["X"].symbol, winLength)) {
-    return { score: 100 - depth };
+    return { score: 100 - depth }; // Subtract the depth so moves that win quicker score higher
   }
   if (checkWin(board, players["O"].symbol, winLength)) {
     return { score: -100 + depth };
   }
   if (availableMoves.length === 0 || depth >= 6) {
-    return { score: getRandomInteger(-5, 5) };
+    return { score: getRandomInteger(-5, 5) };// Either a branch that leads to a draw or a branch that is too deep
   }
 
   let bestMove;
-  let score;
+  let bestScore;
 
   if (player === players["X"]) {
-    score = -Infinity;
+    bestScore = -Infinity;
     for (const move of availableMoves) {
+      // Do the move, calculate the score
       board[move[0]][move[1]] = player.symbol;
-      const result = abminimax(
+      const result = minimax(
         board,
         depth + 1,
         players[player.opposite],
         alpha,
         beta
       );
-      board[move[0]][move[1]] = "";
+      board[move[0]][move[1]] = ""; // Undo the move that was tested
 
-      if (result.score > score) {
-        score = result.score;
+      if (result.score > bestScore) {
+        bestScore = result.score; // Best that the maximiser can do at this depth
         bestMove = move;
-        alpha = Math.max(alpha, score);
+        alpha = Math.max(alpha, bestScore); // Update the best that the maximiser can do at any depth
         if (alpha >= beta) {
+          // Means this move gaurantees a win against the minimiser if maximiser continues to play optimally
+          // So ignore the rest of the moves at this depth
           break;
-        }
+        } 
       }
     }
-    return { ...bestMove, score: score };
+    return { ...bestMove, score: bestScore };
   } else {
-    score = Infinity;
+    bestScore = Infinity;
     for (const move of availableMoves) {
       board[move[0]][move[1]] = player.symbol;
-      const result = abminimax(
+      const result = minimax(
         board,
         depth + 1,
         players[player.opposite],
@@ -509,15 +519,15 @@ function abminimax(board, depth, player, alpha, beta) {
       );
       board[move[0]][move[1]] = "";
 
-      if (result.score < score) {
-        score = result.score;
+      if (result.score < bestScore) {
+        bestScore = result.score;
         bestMove = move;
-        beta = Math.min(beta, score);
+        beta = Math.min(beta, bestScore);
         if (alpha >= beta) {
           break;
         }
       }
     }
-    return { ...bestMove, score: score };
+    return { ...bestMove, score: bestScore };
   }
 }
