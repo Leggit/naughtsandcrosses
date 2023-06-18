@@ -21,7 +21,7 @@ const squareClasses = {
   draw: "bg-gray-500 text-white",
 };
 const activeClasses = "bg-green-600 text-white shadow-xl";
-const maxAiBoardSize = 5;
+const maxAiBoardSize = 9;
 
 /* Global variables */
 let currentPlayer = players["O"];
@@ -37,7 +37,7 @@ $(() => init());
 
 function init() {
   setupSliderEvents();
-  setPlayerCharacterInputLimits()
+  setPlayerCharacterInputLimits();
   reset();
 }
 
@@ -47,8 +47,8 @@ function setupSliderEvents() {
 
 function createEmtpyBoardArray() {
   return Array(boardSize)
-  .fill([])
-  .map(() => [...Array(boardSize).fill("")]);
+    .fill([])
+    .map(() => [...Array(boardSize).fill("")]);
 }
 
 /**
@@ -60,14 +60,17 @@ function setPlayerCharacterInputLimits() {
     const segmenter = new Intl.Segmenter();
     const getVisibleLength = (value) => [...segmenter.segment(value)].length;
     const handleBeforeInput = (event) => {
-      if (event.originalEvent.data && getVisibleLength(event.target.value + event.originalEvent.data) > 1) {
+      if (
+        event.originalEvent.data &&
+        getVisibleLength(event.target.value + event.originalEvent.data) > 1
+      ) {
         event.preventDefault();
       }
-    }
-    $('.player-input').on('beforeinput', handleBeforeInput);
-  } catch(e) {
+    };
+    $(".player-input").on("beforeinput", handleBeforeInput);
+  } catch (e) {
     // Intl is not supported on some browsers - fallback to maxlength attribute
-    $('.player-input').attr('maxlength', 1);
+    $(".player-input").attr("maxlength", 1);
   }
 }
 
@@ -87,15 +90,17 @@ function reset() {
   isFirstTurn = true;
   const aiFirst = $("#aiFirstCheckbox:checked").val();
   players["X"].isAi = $("#humanRadio:checked").val() === undefined;
-  players["X"].remainingTime = players["O"].remainingTime = parseFloat($("#gameLength").val());
+  players["X"].remainingTime = players["O"].remainingTime = parseFloat(
+    $("#gameLength").val()
+  );
   currentPlayer = aiFirst && players["X"].isAi ? players["X"] : players["O"];
 
   updateGameStatusUI(currentPlayer);
   createHtmlBoard(board, getBoardWidthPx(), boardSize);
   $(".square").text("").removeClass(Object.values(squareClasses).join(" "));
-  $("#result").hide();
+  $("#result").hide().removeClass(Object.values(squareClasses).join(" "));
   $("#gameStatus").show();
-  $('.player-input').attr('disabled', false);
+  $(".player-input").attr("disabled", false);
 
   if (currentPlayer.remainingTime === Infinity) {
     $(".timer").hide();
@@ -104,7 +109,11 @@ function reset() {
   }
 
   if (aiFirst) {
-    doAiMove();
+    // Random turn to start
+    selectSquareForTurn(
+      getRandomInteger(0, board.length - 1),
+      getRandomInteger(0, board.length - 1)
+    );
   }
 }
 
@@ -128,14 +137,13 @@ function updateSliders() {
   winLength = parseInt($("#winLength").val());
 
   // Highlight the selected option the datalist for each slider
-  const className = "text-green-700 font-bold"
+  const className = "text-green-700 font-bold";
   $("#boardSizes option").removeClass(className);
   $(`#boardSizes option[value='${boardSize}']`).addClass(className);
   $("#winLengths option").removeClass(className);
   $(`#winLengths option[value='${winLength}']`).addClass(className);
 
-
-  // The win length can only be 3 on a 3x3 board, 
+  // The win length can only be 3 on a 3x3 board,
   // otherwise the user can change the winlength to any number between 3 and the chosen board size
   if (boardSize == 3) {
     $("#winLength").hide();
@@ -143,9 +151,12 @@ function updateSliders() {
     $("#winLengthLabel").text("Win Length: 3");
   } else {
     $("#winLength").show().attr("max", boardSize);
-    $("#winLengths option").hide().filter(function () {
-      return parseInt($(this).attr("value")) <= boardSize;
-    }).show();
+    $("#winLengths option")
+      .hide()
+      .filter(function () {
+        return parseInt($(this).attr("value")) <= boardSize;
+      })
+      .show();
     $("#winLengths").show();
     $("#winLengthLabel").text("Win Length:");
   }
@@ -173,7 +184,10 @@ function createHtmlBoard(board, boardWidthPx, boardSize) {
     onclick="selectSquareForTurn(${x}, ${y})"
     ></div>`;
   // Subfunction to create a row of squares given a certain board length
-  const createRow = (y, row) => `<div class="row">${row.map((_, index) => createSquare(y, index)).join(" ")}</div>`;
+  const createRow = (y, row) =>
+    `<div class="row">${row
+      .map((_, index) => createSquare(y, index))
+      .join(" ")}</div>`;
 
   const boardHtml = board.map((row, index) => createRow(index, row)).join("");
   $("#board").html(boardHtml);
@@ -185,7 +199,7 @@ function createHtmlBoard(board, boardWidthPx, boardSize) {
  */
 function updateSquareLengthCss(boardWidthPx, boardSize) {
   const squareLength = boardWidthPx / boardSize;
-  $(":root").css({ "--squareLength": squareLength });
+  $(":root").css({ "--squareLengthPx": squareLength });
 }
 
 /**
@@ -200,9 +214,12 @@ function selectSquareForTurn(x, y) {
   // Disable the player symbol inputs once the first turn has been taken
   if (isFirstTurn) {
     isFirstTurn = false;
-    $('.player-input').attr('disabled', true);
-    players['X'].symbol = $('#xInput').val();
-    players['O'].symbol = $('#oInput').val();
+    $(".player-input").attr("disabled", true);
+    // Check the inputs are not empty
+    if ($("#xInput").val().length <= 0) $("#xInput").val("X");
+    if ($("#oInput").val().length <= 0) $("#oInput").val("O");
+    players["X"].symbol = $("#xInput").val();
+    players["O"].symbol = $("#oInput").val();
   }
 
   // Update the UI and in code representation of the board to reflect this turn
@@ -211,6 +228,7 @@ function selectSquareForTurn(x, y) {
 
   // Check if the game is in a terminal state and take the next appropriate action based on this
   const win = checkWin(board, currentPlayer.symbol, winLength);
+
   if (win) {
     announceWin(win);
   } else if (!getAvailableMoves(board).length) {
@@ -232,7 +250,7 @@ function startNextTurn() {
 }
 
 function timerTick(player) {
-  clearTimeout(currentTickTimer);// So that if the player takes their turn during the timout window the current tick is cancelled
+  clearTimeout(currentTickTimer); // So that if the player takes their turn during the timout window the current tick is cancelled
   currentTickTimer = setTimeout(() => {
     if (isGameActive) {
       player.remainingTime = player.remainingTime - 0.1;
@@ -241,13 +259,16 @@ function timerTick(player) {
         announceTimeout();
       }
     }
-    timerTick(player);// Repeat timer logic until this function is called elsewhere with the other player passed in
+    timerTick(player); // Repeat timer logic until this function is called elsewhere with the other player passed in
   }, 100);
 }
 
 function doAiMove() {
-  const bestMove = abminimax(board, 0, currentPlayer, -Infinity, Infinity);
-  selectSquareForTurn(bestMove[0], bestMove[1]);
+  // Using setTimout means the UI updates with the previous move before calculating the next best move
+  setTimeout(() => {
+    const bestMove = abminimax(board, 0, currentPlayer, -Infinity, Infinity);
+    selectSquareForTurn(bestMove[0], bestMove[1]);
+  });
 }
 
 function announceWin(winningSquares) {
@@ -258,11 +279,15 @@ function announceWin(winningSquares) {
   if (currentPlayer.isAi) {
     $("#result").text("You Lost").addClass(squareClasses.lose);
   } else {
-    const message = players["X"].isAi ? "You Win" : "Winner: " + currentPlayer.symbol;
+    const message = players["X"].isAi
+      ? "You Win"
+      : "Winner: " + currentPlayer.symbol;
     $("#result").text(message).addClass(squareClasses.win);
   }
 
-  const squareClass = currentPlayer.isAi ? squareClasses.lose : squareClasses.win;
+  const squareClass = currentPlayer.isAi
+    ? squareClasses.lose
+    : squareClasses.win;
   winningSquares.forEach(([x, y]) =>
     $(`#square${x}${y}`).addClass(squareClass)
   );
@@ -271,7 +296,10 @@ function announceWin(winningSquares) {
 function announceTimeout() {
   isGameActive = false;
   $("#gameStatus").hide();
-  $("#result").show().text(currentPlayer.symbol + " lost 🐌").addClass(squareClasses.lose);
+  $("#result")
+    .show()
+    .text(currentPlayer.symbol + " lost 🐌")
+    .addClass(squareClasses.lose);
   $(".square").addClass(squareClasses.lose);
 }
 
@@ -371,7 +399,8 @@ function checkWin(board, playerSymbol, winLength) {
     return false;
   };
 
-  // Use JS "truthy" functionality to either return falsey for no win or an array (Truthy) for the winning squares
+  // Use JS "truthy" functionality to either return falsey for no win,
+  // or an array (Truthy) for the winning squares
   return (
     checkRows() ||
     checkCols() ||
@@ -392,21 +421,53 @@ function getAvailableMoves(board) {
   return moves;
 }
 
+function getAvailableMoves(board, limitToNearby) {
+  const moves = [];
+  for (let i = 0; i < board.length; i++) {
+    for (let j = 0; j < board.length; j++) {
+      if (board[i][j] === "") {
+        if (!limitToNearby || nearByOccupied(board, i, j)) {
+          moves.push([i, j]);
+        }
+      }
+    }
+  }
+  return moves;
+}
+
+function nearByOccupied(board, i, j) {
+  const xMin = i - 1 >= 0 ? i - 1 : 0;
+  const xMax = i + 1;
+  const yMin = j - 1 >= 0 ? j - 1 : 0;
+  const yMax = j + 1;
+
+  for (let x = xMin; x <= xMax; x++) {
+    for (let y = yMin; y <= yMax; y++) {
+      if (x === i && y === j) continue;
+      if (board[x]?.[y]) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 function getRandomInteger(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function abminimax(board, depth, player, alpha, beta) {
-  const availableMoves = getAvailableMoves(board);
+  const availableMoves = getAvailableMoves(board, board.length > 4);
 
   if (checkWin(board, players["X"].symbol, winLength)) {
-    return { score: 20 };
+    return { score: 100 - depth };
   }
   if (checkWin(board, players["O"].symbol, winLength)) {
-    return { score: -20 };
+    return { score: -100 + depth };
   }
-  if (availableMoves.length === 0) {
-    return { score: 0 };
+  if (availableMoves.length === 0 || depth >= 6) {
+    return { score: getRandomInteger(-5, 5) };
   }
 
   let bestMove;
