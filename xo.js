@@ -38,7 +38,7 @@ $(() => init());
 function init() {
   setupSliderEvents();
   setPlayerCharacterInputLimits();
-  reset();
+  newGame();
 }
 
 function setupSliderEvents() {
@@ -84,7 +84,7 @@ function getBoardWidthPx() {
  * Clears the board and sets up for a new game using the game parameters chosen by the user
  * Starts the timers and makes the AI take the first move (if applicable)
  */
-function reset() {
+function newGame() {
   board = createEmtpyBoardArray(boardSize);
   isGameActive = true;
   isFirstTurn = true;
