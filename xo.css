@@ -24,9 +24,6 @@
   line-height: var(--squareLengthPx);
 }
 
-datalist {
-}
-
 datalist option {
   text-align: center;
   cursor: pointer;

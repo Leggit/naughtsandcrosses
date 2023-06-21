@@ -136,6 +136,10 @@ function updateSliders() {
   boardSize = parseInt($("#boardSize").val());
   winLength = parseInt($("#winLength").val());
 
+  if (winLength > boardSize) {
+    winLength = boardSize;
+  }
+
   // Highlight the selected option the datalist for each slider
   const className = "text-green-700 font-bold";
   $("#boardSizes option").removeClass(className);
@@ -147,7 +151,7 @@ function updateSliders() {
   // otherwise the user can change the winlength to any number between 3 and the chosen board size
   if (boardSize == 3) {
     $("#winLength").hide();
-    $("#winLengths").hide();
+    $("#winLengths").addClass("hidden");
     $("#winLengthLabel").text("Win Length: 3");
   } else {
     $("#winLength").show().attr("max", boardSize);
@@ -157,7 +161,7 @@ function updateSliders() {
         return parseInt($(this).attr("value")) <= boardSize;
       })
       .show();
-    $("#winLengths").show();
+    $("#winLengths").removeClass("hidden");
     $("#winLengthLabel").text("Win Length:");
   }
 
@@ -474,7 +478,7 @@ function minimax(board, depth, player, alpha, beta) {
     return { score: -100 + depth };
   }
   if (availableMoves.length === 0 || depth >= 6) {
-    return { score: getRandomInteger(-5, 5) };// Either a branch that leads to a draw or a branch that is too deep
+    return { score: getRandomInteger(-5, 5) }; // Either a branch that leads to a draw or a branch that is too deep
   }
 
   let bestMove;
@@ -499,7 +503,7 @@ function minimax(board, depth, player, alpha, beta) {
         bestMove = move;
         alpha = Math.max(alpha, bestScore); // Update the best that the maximiser can do at any depth
         if (alpha >= beta) {
-          // Means this move gaurantees a win against the minimiser if maximiser continues to play optimally
+          // Means this move gaurantees a win against minimiser if maximiser continues to play optimally
           // So ignore the rest of the moves at this depth
           break;
         } 
