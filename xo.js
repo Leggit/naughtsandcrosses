@@ -85,6 +85,7 @@ function getBoardWidthPx() {
  * Starts the timers and makes the AI take the first move (if applicable)
  */
 function newGame() {
+  clearTimeout(currentTickTimer);
   board = createEmtpyBoardArray(boardSize);
   isGameActive = true;
   isFirstTurn = true;
