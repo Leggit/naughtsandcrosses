@@ -1,0 +1,59 @@
+:root {
+  /* Variables used to size the game board and game board squares correctly */ 
+  --boardWidthPx: 450px;
+  --squareLengthPx: calc(var(--boardWidthPx) / 3);
+}
+
+#board {
+  width: var(--boardWidthPx);
+  height: var(--boardWidthPx);
+  margin: auto;
+  user-select: none;
+}
+
+.row {
+  display: flex;
+  height: var(--squareLengthPx);
+}
+
+.square {
+  flex: 1;
+  border: 1px solid black;
+  text-align: center;
+  font-size: calc(var(--squareLengthPx) * 0.7);
+  line-height: var(--squareLengthPx);
+}
+
+datalist option {
+  text-align: center;
+  cursor: pointer;
+}
+
+.clock {
+  line-height: 18px;
+  height: 20px;
+}
+
+.clock.active {
+  animation-name: spin;
+  animation-duration: 2000ms;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+
+/* Make the board smaller on phone screens */
+@media only screen and (max-width: 768px) {
+  :root {
+    --boardWidthPx: 300px;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

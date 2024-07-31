@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>0s and Xs</title>
+
+  <link href="xo.css" rel="stylesheet" />
+  <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet" />
+</head>
+
+<body class="bg-gray-300 m-3">
+
+  <div class="md:max-w-4xl m-auto">
+
+    <header>
+      <h1 class="text-3xl w-full text-gray-8-0 text-center bg-white shadow-lg mb-3 p-2 rounded">Naughts and Crosses</h1>
+    </header>
+
+    <main class="grid grid-cols-3 gap-3">
+      <!-- Game board -->
+      <section class="md:col-span-2 col-span-full bg-white p-4 md:p-8 shadow-lg rounded flex">
+        <div id="board"></div>
+      </section>
+
+      <section class="md:col-span-1 col-span-full flex flex-col">
+
+        <!-- Game status area -->
+        <div class="rounded bg-white mb-3 text-center">
+          <div id="gameStatus" class="flex w-full rounded">
+
+            <!-- O player -->
+            <div id="gameStatusO" class="flex-1 p-2 rounded-l">
+              <div class="text-3xl">
+                <label for="oInput" class="sr-only">Second player symbol</label>
+                <input id="oInput" type="text" value="O" class="player-input w-full text-center bg-transparent border-none focus:outline-none">
+              </div>
+              <div hidden class="timer">
+                <div class="clock text-center inline-block">🕒</div> 
+                <span id="timerO" class="font-bold"></span>
+              </div>
+            </div>
+
+            <!-- X player-->
+            <div id="gameStatusX" class="flex-1 p-2 rounded-r">
+              <div class="text-3xl">
+                <label for="xInput" class="sr-only">First player symbol</label>
+                <input id="xInput" type="text" value="X" class="player-input w-full text-center bg-transparent border-none focus:outline-none">
+              </div>
+              <div hidden class="timer">
+                <div class="clock text-center inline-block">🕒</div> 
+                <span id="timerX" class="font-bold"></span>
+              </div>
+            </div>
+
+          </div>
+
+          <div id="result" hidden class="text-3xl font-rounded shadow-lg p-5"></div>
+        </div>
+
+        <!-- Game options area -->
+        <div class="flex-grow">
+          <form class="h-full p-8 shadow-lg rounded px-8 pt-6 pb-8 bg-white">
+            <h2 class="font-semibold text-lg mb-3">Game options</h2>
+    
+            <!-- Board size -->
+            <div class="mb-3">
+              <label for="boardSize" class="block text-gray-700 text-sm font-medium mb-2">
+                Board size:
+              </label>
+              <input type="range" min="3" step="1" max="9" value="3" class="w-full px-2" list="boardSizes"
+                id="boardSize" />
+
+              <datalist id="boardSizes" class="px-2 flex justify-between w-full">
+                <option value="3" label="3" onclick="$('#boardSize').val(3); updateSliders()"
+                  class="text-green-700 font-bold"></option>
+                <option value="4" label="4" onclick="$('#boardSize').val(4); updateSliders()"></option>
+                <option value="5" label="5" onclick="$('#boardSize').val(5); updateSliders()"></option>
+                <option value="6" label="6" onclick="$('#boardSize').val(6); updateSliders()"></option>
+                <option value="7" label="7" onclick="$('#boardSize').val(7); updateSliders()"></option>
+                <option value="8" label="8" onclick="$('#boardSize').val(8); updateSliders()"></option>
+                <option value="9" label="9" onclick="$('#boardSize').val(9); updateSliders()"></option>
+              </datalist>
+            </div>
+
+            <!-- Win length -->
+            <div class="mb-3">
+              <label id="winLengthLabel" for="winLength" class="block text-gray-700 text-sm font-medium mb-2">
+                Win length: 3
+              </label>
+              <input type="range" min="3" step="1" max="3" value="3" class="w-full px-2 hidden" list="winLengths"
+                id="winLength" />
+
+              <datalist id="winLengths" class="px-2 flex justify-between w-full hidden">
+                <option value="3" label="3" onclick="$('#winLength').val(3); updateSliders()"
+                  class="text-green-700 font-bold"></option>
+                <option value="4" label="4" onclick="$('#winLength').val(4); updateSliders()"></option>
+                <option value="5" label="5" onclick="$('#winLength').val(5); updateSliders()"></option>
+                <option value="6" label="6" onclick="$('#winLength').val(6); updateSliders()"></option>
+                <option value="7" label="7" onclick="$('#winLength').val(7); updateSliders()"></option>
+                <option value="8" label="8" onclick="$('#winLength').val(8); updateSliders()"></option>
+                <option value="9" label="9" onclick="$('#winLength').val(9); updateSliders()"></option>
+              </datalist>
+            </div>
+
+            <!-- Game length -->
+            <div class="mb-4">
+              <label for="gameLength" class="text-gray-700 block mb-2 text-sm font-medium">
+                Game Length:
+              </label>
+              <select id="gameLength"
+                class="border text-gray-900 text-sm rounded focus:ring-blue-500 focus:border-blue-500 w-full p-1">
+                <option selected value="Infinity">Infinite</option>
+                <option value="5">5s</option>
+                <option value="10">10s</option>
+                <option value="30">30s</option>
+                <option value="60">1 min</option>
+                <option value="120">2 min</option>
+                <option value="300">5 min</option>
+              </select>
+            </div>
+
+            <!-- AI options -->
+            <div>
+              <div class="mb-3" id="playAgainstSelect" role="radiogroup">
+                <p class="block text-gray-700 text-sm font-medium mb-2">Play against: </label>
+                <div class="flex items-center">
+                  <input id="humanRadio" type="radio" value="" name="bordered-radio"
+                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300">
+                  <label for="humanRadio" class="w-full ml-2 text-sm text-gray-900">Human</label>
+
+                  <input checked id="aiRadio" type="radio" value="" name="bordered-radio"
+                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300">
+                  <label for="aiRadio" class="w-full ml-2 text-sm text-gray-900">AI</label>
+                </div>
+              </div>
+              <div class="mb-4 flex items-center" id="playAgainstSelect">
+                <input id="aiFirstCheckbox" type="checkbox"
+                  class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded">
+                <label for="aiFirstCheckbox" class="ml-2 text-sm text-gray-900 dark:text-gray-300">AI goes
+                  first?</label>
+              </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="mt-6">
+              <a onclick="newGame()"
+                class="cursor-pointer bg-transparent hover:bg-green-600 text-green-700 font-semibold hover:text-white py-2 px-4 border-2 border-green-600 hover:border-transparent rounded">
+                New Game
+              </a>
+            </div>
+
+          </form>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js"
+    integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+  <script src="xo.js"></script>
+</body>
+
+</html>
